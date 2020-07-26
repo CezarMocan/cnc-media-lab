@@ -1,0 +1,7 @@
+ofxOpenCv
+ofxCv
+ofxGrabCam
+ofxGui
+ofxKinect
+ofxOsc
+ofxVoronoi
