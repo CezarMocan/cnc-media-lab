@@ -121,7 +121,8 @@ void BodySoundPlayer::sendMidiSequenceOsc()
 	}
 
 	// Sequence of MIDI messages, mapped on a pattern of 16
-	int whichPattern = 0;
+	int whichPattern = (int)floor(ofRandom(MappingPatterns::to16[this->iP.size()].size()));
+	//ofRandom()
 	vector<int> pattern = MappingPatterns::to16[this->iP.size()][whichPattern];
 	vector<int> jointSequencePatternMidi;
 
