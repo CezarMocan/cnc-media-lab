@@ -42,6 +42,9 @@ void ofApp::setup() {
 	// OSC setup
 	this->oscSoundManager = new ofOSCManager(Constants::OSC_HOST, Constants::OSC_PORT);
 
+	// Tracked bodies initialize
+	TrackedBody::initialize();
+
 	// Contour finder setup
 	contourFinder.setMinAreaRadius(3);
 	contourFinder.setMaxAreaRadius(1000);

@@ -15,7 +15,7 @@ public:
 	void setAccentSpeed2(float s);
 	void update();
 	void draw();
-	void sendOSC();
+	void sendOSC(int instrumentId);
 	MidiNote* pointToMidi(ofVec2f point);
 
 	static bool timeBasedComparator(ofVec2f a, ofVec2f b);
@@ -31,7 +31,7 @@ private:
 	void playNextNote();
 	void playAccentNote();
 	void playAccentNote2();
-	void sendMidiSequenceOsc();
+	void sendMidiSequenceOsc(int instrumentId);
 	float getDurationForIndex(int index);
 
 	vector<ofVec2f> interestPoints;

@@ -10,6 +10,9 @@
 #include "ofxVoronoi.h"
 #include "BodySoundPlayer.h"
 
+#ifndef TRACKED_BODY_H
+#define TRACKED_BODY_H
+
 using namespace std;
 using namespace Constants;
 
@@ -24,6 +27,8 @@ enum BodyDrawMode {
 
 class TrackedBody {
 public:
+	static void initialize();
+
 	TrackedBody(int index, float smoothingFactor, int contourPoints = 150);
 	void setOSCManager(ofOSCManager* m);
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
@@ -58,12 +63,23 @@ public:
 
 	virtual void draw();
 
+	void assignInstrument();
+	void reassignInstrument();
+	void assignInstrument(int instrumentId);
+	int getInstrumentId();
+
+	static int instruments[Constants::MAX_INSTRUMENTS];
+	static int getFirstFreeInstrument();
+	static void acquireInstrument(int instrumentId);
+	static void releaseInstrument(int instrumentId);
+
 	string serialize();	
 
 	void sendOSCData();
 
 protected:
 	int index;
+	int instrumentId;
 	int drawMode;
 	float smoothingFactor;
 	int contourPoints;
@@ -94,3 +110,5 @@ protected:
 	void updateJointPosition(JointType joint, ofVec2f position);
 	void setJointUniform(JointType joint, string uniformName, ofShader shader);	
 };
+
+#endif

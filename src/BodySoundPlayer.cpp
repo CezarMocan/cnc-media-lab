@@ -100,11 +100,11 @@ void BodySoundPlayer::playAccentNote2() {
 	//MidiPlayer::playNoteWithInstrument(accent->note, 3 + (int)floor(ofRandom(2)), Instruments::SEASHORE, 2000);
 }
 
-void BodySoundPlayer::sendOSC() {
-	this->sendMidiSequenceOsc();
+void BodySoundPlayer::sendOSC(int instrumentId) {
+	this->sendMidiSequenceOsc(instrumentId);
 }
 
-void BodySoundPlayer::sendMidiSequenceOsc()
+void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 {
 	if (this->interestPoints.size() == 0) return;	
 
@@ -135,7 +135,7 @@ void BodySoundPlayer::sendMidiSequenceOsc()
 		}
 	}	
 	
-	this->oscManager->sendBodyMidiSequence(this->index, jointSequencePatternMidi, jointSequenceRaw);
+	this->oscManager->sendBodyMidiSequence(instrumentId, jointSequencePatternMidi, jointSequenceRaw);
 }
 
 
