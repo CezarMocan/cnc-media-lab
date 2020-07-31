@@ -34,8 +34,9 @@ private:
 	bool isRecording;
 	bool isPlaying;
 
-	vector<map<JointType, TrackedJoint*> > recordedJoints;
-	vector<ofPolyline> recordedContours;	
+	vector<map<JointType, TrackedJoint> > recordedJoints;
+	vector<ofPolyline> recordedContours;
+	vector<ofPolyline> recordedRawContours;
 	vector<ofImage> recordedTextures;
 
 };

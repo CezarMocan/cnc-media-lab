@@ -594,21 +594,14 @@ string TrackedBody::serialize()
 	stringstream ss;
 	ss << this->index << "\n";
 	ss << Constants::SKELETON_DELIMITER << "\n";
-	int noJoints = 0;
-	for (auto it = this->latestSkeleton.begin(); it != this->latestSkeleton.end(); ++it) {
-		JointType currentJoint = it->first;
-		if (this->latestSkeleton[currentJoint].getTrackingState() == TrackingState_Tracked || this->latestSkeleton[currentJoint].getTrackingState() == TrackingState_Inferred) {
-			noJoints++;
-		}
-	}
+
+	int noJoints = this->joints.size();
 	ss << noJoints << "\n";
 
-	for (auto it = this->latestSkeleton.begin(); it != this->latestSkeleton.end(); ++it) {
+	for (auto it = this->joints.begin(); it != this->joints.end(); ++it) {
 		JointType currentJoint = it->first;
-		if (this->latestSkeleton[currentJoint].getTrackingState() == TrackingState_Tracked || this->latestSkeleton[currentJoint].getTrackingState() == TrackingState_Inferred) {
-			ofVec2f position = it->second.getProjected(this->coordinateMapper, ofxKFW2::ProjectionCoordinates::DepthCamera);
-			ss << currentJoint << " " << position.x << " " << position.y << "\n";
-		}
+		TrackedJoint* j = it->second;
+		ss << currentJoint << " " << j->getTargetPosition().x << " " << j->getTargetPosition().y << "\n";
 	}
 
 	ss << Constants::CONTOUR_DELIMITER << "\n";

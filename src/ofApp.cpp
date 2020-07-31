@@ -79,27 +79,20 @@ void ofApp::setup() {
 	MidiPlayer::loadSoundFonts();
 
 	// Network GUI setup
-	serverConnectButton.addListener(this, &ofApp::serverConnectButtonPressed);
+	peerConnectButton.addListener(this, &ofApp::peerConnectButtonPressed);
 
 	networkGui.setup();	
 
-	isServer = false;
-	networkGui.add(isServer.set("Is Server", false));
-
-	networkGui.add(serverIp.set("Server IP", "10.147.20.54"));
-	networkGui.add(serverPort.set("Server Port", "12346"));
-	networkGui.add(serverConnectButton.setup("Connect"));
+	networkGui.add(peerIp.set("Peer IP", "10.147.20.54"));
+	networkGui.add(peerPort.set("Peer Port", "12346"));
+	networkGui.add(localPort.set("Local Port", "12347"));
+	networkGui.add(peerConnectButton.setup("Connect"));
 
 	this->networkManager = NULL;	
 }
 
-void ofApp::serverConnectButtonPressed() {
-	if (this->isServer.get()) {
-		this->networkManager = new NetworkManager(true, atoi(this->serverPort.get().c_str()));
-	}
-	else {
-		this->networkManager = new NetworkManager(false, this->serverIp.get(), atoi(this->serverPort.get().c_str()));
-	}
+void ofApp::peerConnectButtonPressed() {
+	this->networkManager = new NetworkManager(this->peerIp.get(), atoi(this->peerPort.get().c_str()), atoi(this->localPort.get().c_str()));
 }
 
 //--------------------------------------------------------------
@@ -111,51 +104,58 @@ void ofApp::update() {
 	kinect.update();
 	this->networkManager->update();
 	// Update each tracked body after skeleton data was entered
-	// Also send the data over OSC
+	// Send data over the network
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
-		this->trackedBodies[bodyId]->update();		
-		if (this->isServer.get()) {
-			this->trackedBodies[bodyId]->sendOSCData();			
-		}
-		else {
-			string data = this->trackedBodies[bodyId]->serialize();
-			if (ofGetFrameNum() % 3 == 0)
-				this->networkManager->sendBodyData(bodyId, data);
-		}
+		this->trackedBodies[bodyId]->update();
+
+		// Send sound data to MaxMSP
+		this->trackedBodies[bodyId]->sendOSCData();
+		
+		// Send serialized body data over the network
+		string data = this->trackedBodies[bodyId]->serialize();
+		if (ofGetFrameNum() % 3 == 0)
+			this->networkManager->sendBodyData(bodyId, data);
 	}
 
-	// Update each recording and send data over OSC
+	// Update each recording and send data over OSC to MaxMSP and the peer
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 		TrackedBodyRecording* rec = *it;		
 		rec->update();
-		if (this->isServer.get()) {
+
+		if (rec->getIsPlaying()) {
+			// Send sound data to MaxMSP
 			rec->sendOSCData();
+
+			// Send serialized body data over the network
+			string data = rec->serialize();
+			if (ofGetFrameNum() % 3 == 1)
+				this->networkManager->sendBodyData(rec->index, data);
 		}
 	}
 
-	if (this->isServer.get()) {
-		for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES; bodyId++) {
-			if (!this->networkManager->isBodyActive(bodyId)) {
-				if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
-					this->remoteBodies[bodyId]->setTracked(false);
-					this->remoteBodies.erase(bodyId);
-				}
-			}
-			else {
-				string bodyData = this->networkManager->getBodyData(bodyId);
-				if (bodyData.size() < 2) continue;
-				if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
-					this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2);
-					this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
-					this->remoteBodies[bodyId]->setTracked(true);
-				}
-				this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
-				this->remoteBodies[bodyId]->update();
-				this->remoteBodies[bodyId]->sendOSCData();
+	// Get data from peer and forward to MaxMSP
+	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
+		if (!this->networkManager->isBodyActive(bodyId)) {
+			if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
+				this->remoteBodies[bodyId]->setTracked(false);
+				this->remoteBodies.erase(bodyId);
 			}
 		}
+		else {
+			string bodyData = this->networkManager->getBodyData(bodyId);
+			if (bodyData.size() < 2) continue;
+			if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
+				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2);
+				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
+				this->remoteBodies[bodyId]->setTracked(true);
+			}
+			this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
+			this->remoteBodies[bodyId]->update();
+			this->remoteBodies[bodyId]->sendOSCData();
+		}
 	}
+	
 }
 
 void ofApp::detectBodySkeletons()
@@ -200,7 +200,7 @@ void ofApp::detectBodySkeletons()
 
 		// TODO (cez): This only applies to recordings of local bodies. Need to do the same for remote.
 		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
-			rec->stopRecording();			
+			rec->stopRecording();
 		}
 		else {
 			TrackedBody* body = this->trackedBodies[trackedBodyId];
@@ -320,8 +320,7 @@ void ofApp::drawTrackedBodies(int drawMode) {
 }
 
 void ofApp::drawRemoteBodies(int drawMode) {
-	if (!this->isServer.get()) return;
-	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES; bodyId++) {
+	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) continue;
 		TrackedBody* body = this->remoteBodies[bodyId];
 		body->setDrawMode(drawMode);
@@ -399,9 +398,9 @@ void ofApp::drawAlternate() {
 		this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
 		this->drawRemoteBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
 		*/
-		this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR);
-		this->drawTrackedBodies(BDRAW_MODE_CONTOUR);
-		this->drawRemoteBodies(BDRAW_MODE_CONTOUR);
+		this->drawTrackedBodyRecordings(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
+		this->drawTrackedBodies(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
+		this->drawRemoteBodies(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
 		//this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
 		break;
 	case 2:

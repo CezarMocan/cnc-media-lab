@@ -22,6 +22,7 @@ void TrackedBodyRecording::startRecording()
 
 	this->recordedJoints.clear();
 	this->recordedContours.clear();
+	this->recordedRawContours.clear();
 	this->recordedTextures.clear();
 }
 
@@ -51,13 +52,15 @@ void TrackedBodyRecording::update()
 {
 	if (isRecording) {
 		TrackedBody::update();
+		if (this->contour.size() < 5) return;
 		// Record contour
 		this->recordedContours.push_back(ofPolyline(this->contour));
+		this->recordedRawContours.push_back(ofPolyline(this->rawContour));
 
 		// Record joints
-		map<JointType, TrackedJoint*> newJoints;
+		map<JointType, TrackedJoint> newJoints;
 		for (auto it = this->joints.begin(); it != this->joints.end(); ++it) {
-			newJoints[it->first] = new TrackedJoint(it->second);
+			newJoints[it->first] = TrackedJoint(it->second);
 		}
 		this->recordedJoints.push_back(newJoints);
 
@@ -70,8 +73,15 @@ void TrackedBodyRecording::update()
 		if (this->playhead == this->recordedContours.size() - 1 || this->playhead == 0)
 			this->playDirection *= -1;		
 
+		this->rawContour = this->recordedRawContours[this->playhead];
 		this->contour = this->recordedContours[this->playhead];
-		this->joints = this->recordedJoints[this->playhead];
+		
+		this->joints.clear();
+		for (auto it = this->recordedJoints[this->playhead].begin(); it != this->recordedJoints[this->playhead].end(); ++it) {
+			this->joints[it->first] = &(it->second);//new TrackedJoint(it->second);
+		}
+
+		//this->joints = this->recordedJoints[this->playhead];
 		//this->texture = this->recordedTextures[this->playhead];
 				
 		this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());

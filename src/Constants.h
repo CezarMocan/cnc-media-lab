@@ -102,7 +102,8 @@ namespace Constants {
 	const int COLOR_WIDTH = 1920;
 	const int COLOR_HEIGHT = 1080;
 
-	const int MAX_TRACKED_BODIES = 10;
+	const int MAX_TRACKED_BODIES = 9;
+	const int BODY_RECORDINGS_ID_OFFSET = 10;
 	const int MAX_INSTRUMENTS = 30;
 
 	const string OSC_HOST = "127.0.0.1";
@@ -110,8 +111,7 @@ namespace Constants {
 
 	const string SKELETON_DELIMITER = "__SKELETON__";
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
-	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;
-	const int BODY_RECORDINGS_ID_OFFSET = 1000;
+	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;	
 }
 
 namespace OscCategories {

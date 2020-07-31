@@ -84,8 +84,9 @@ public:
 	ofPolyline rawContour;
 	ofImage texture;
 
-protected:
 	int index;
+
+protected:	
 	int instrumentId;
 	int drawMode;
 	float smoothingFactor;

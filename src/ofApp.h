@@ -92,12 +92,12 @@ public:
 	ofParameter<float> voronoiEnvironmentNoise;
 	ofParameter<bool> voronoiConnectCellCenters;
 
-	ofxPanel networkGui;
-	ofParameter<bool> isServer;
-	ofParameter<string> serverIp;
-	ofParameter<string> serverPort;
-	ofxButton serverConnectButton;
-	void serverConnectButtonPressed();
+	ofxPanel networkGui;	
+	ofParameter<string> peerIp;
+	ofParameter<string> peerPort;
+	ofParameter<string> localPort;
+	ofxButton peerConnectButton;
+	void peerConnectButtonPressed();
 	NetworkManager* networkManager;
 
 };

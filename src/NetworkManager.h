@@ -11,8 +11,7 @@ using namespace std;
 
 class NetworkManager {
 public:
-	NetworkManager(bool isServer, string remoteIp, int remotePort);
-	NetworkManager(bool isServer, int localPort);
+	NetworkManager(string remoteIp, int remotePort, int localPort);
 	bool isServer();
 	bool isClient();
 	

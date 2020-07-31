@@ -1,12 +1,21 @@
 #include "TrackedJoint.h"
 
+TrackedJoint::TrackedJoint() {
+	this->type = JointType_SpineBase;
+	this->initialized = false;
+	this->smoothingFactor = 0;
+	this->currentPosition = ofVec2f(0, 0);
+	this->targetPosition = ofVec2f(0, 0);
+	this->velocity = ofVec2f(0, 0);
+}
+
 TrackedJoint::TrackedJoint(TrackedJoint* j)
 {
 	this->type = j->type;
 	this->initialized = j->initialized;
 	this->smoothingFactor = j->smoothingFactor;
 	this->currentPosition = j->currentPosition;
-	this->targetPosition = j->currentPosition;
+	this->targetPosition = j->targetPosition;
 	this->velocity = j->velocity;
 }
 

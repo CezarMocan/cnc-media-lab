@@ -5,6 +5,7 @@
 
 class TrackedJoint {
 public:
+	TrackedJoint();
 	TrackedJoint(TrackedJoint* j);
 	TrackedJoint(JointType type);
 	void setPosition(ofVec2f pos, float smoothing = 0);

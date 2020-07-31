@@ -1,36 +1,19 @@
 #include "assert.h"
 #include "NetworkManager.h"
 
-NetworkManager::NetworkManager(bool isServer, string remoteIp, int remotePort)
+NetworkManager::NetworkManager(string remoteIp, int remotePort, int localPort)
 {
-	if (isServer) {
-		ofLogError() << "This NetworkManager constructor is supposed to only be called for a client!";
-		abort();
-	}
-	this->isThisServer = isServer;
 	this->remoteIp = remoteIp;
 	this->remotePort = remotePort;
-
 	this->oscSender.setup(this->remoteIp, this->remotePort);
-}
 
-NetworkManager::NetworkManager(bool isServer, int localPort)
-{
-	if (!isServer) {
-		ofLogError() << "This NetworkManager constructor is supposed to only be called for a client!";
-		abort();
-	}
-	this->isThisServer = isServer;
 	this->localPort = localPort;
-
 	this->oscReceiver.setup(this->localPort);
 }
 
 void NetworkManager::update() 
-{
-	if (this->isClient()) return;
-
-	// Only need to check for incoming messages for the server
+{	
+	// Check for incoming messages from the peer
 	while (oscReceiver.hasWaitingMessages()) {
 		ofxOscMessage m;
 		oscReceiver.getNextMessage(&m);
@@ -40,30 +23,15 @@ void NetworkManager::update()
 			string data = m.getArgAsString(1);
 			this->serializedData[bodyIndex] = data;
 			this->dataTimestamps[bodyIndex] = ofGetSystemTimeMillis();
-		}
-		else if (m.getAddress().compare("/update") == 0) {
-			ofLogNotice() << "Client /update!";
-		}
-		else {
-
+		} else {
+			ofLogWarning() << "Unrecognized message coming from OSC peer!";
 		}
 	}
 
 }
 
-bool NetworkManager::isServer()
-{
-	return this->isThisServer;
-}
-
-bool NetworkManager::isClient()
-{
-	return !this->isThisServer;
-}
-
 void NetworkManager::sendBodyData(int index, string data)
 {
-	if (this->isServer()) return;
 	ofxOscMessage m;
 	m.setAddress(OscCategories::REMOTE_BODY_DATA);
 	m.addInt32Arg(index);
