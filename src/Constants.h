@@ -33,17 +33,17 @@ namespace MappingPatterns {
 		// 0 items to a beat of 16
 		{ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 		// 1 item to a beat of 16
-		{ { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+		{ { 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0 } },
 		// 2 items to a beat of 16
-		{ { 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0 } },
+		{ { 1, 2, 0, 1, 2, 0, 1, 2, 2, 1, 0, 1, 2, 0, 1, 0 } },
 		// 3 items to a beat of 16
-		{ { 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0 } },
+		{ { 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 0, 0 } },
 		// 4 items to a beat of 16
-		{ { 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0 } },
+		{ { 1, 2, 0, 3, 4, 3, 4, 0, 1, 2, 0, 3, 4, 3, 4, 0 } },
 		// 5 items to a beat of 16
-		{ { 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0, 5, 0, 0, 0 } },
+		{ { 1, 2, 3, 4, 5, 0, 1, 3, 5, 2, 4, 0, 1, 2, 3, 0 } },
 		// 6 items to a beat of 16
-		{ { 1, 0, 0, 2, 0, 3, 0, 0, 4, 0, 5, 0, 0, 6, 0, 0 } },
+		{ { 1, 2, 3, 4, 5, 6, 0, 0, 1, 2, 3, 4, 5, 6, 0, 0 } },
 		// 7 items to a beat of 16
 		{ { 1, 0, 2, 0, 0, 3, 4, 0, 5, 6, 0, 0, 0, 7, 0, 0 }, {1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 0, 0, 4, 5, 6}, {1, 1, 2, 2, 0, 3, 3, 4, 5, 5, 0, 6, 6, 7, 7, 0} },
 		// 8 items to a beat of 16
@@ -111,6 +111,7 @@ namespace Constants {
 	const string SKELETON_DELIMITER = "__SKELETON__";
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
 	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;
+	const int BODY_RECORDINGS_ID_OFFSET = 1000;
 }
 
 namespace OscCategories {

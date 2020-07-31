@@ -24,8 +24,13 @@ public:
 	void drawRemoteBodies(int drawMode);
 	void drawTrackedBodyRecordings(int drawMode);
 	void drawVoronoi();
+
 	void detectBodySkeletons();
 	void detectBodyContours();
+
+	TrackedBodyRecording* createBodyRecording(int bodyId);
+	vector<TrackedBodyRecording*> activeBodyRecordings;
+
 	bool isBorder(ofDefaultVec3 _pt);
 
 	void keyPressed(int key);

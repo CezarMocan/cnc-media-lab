@@ -29,7 +29,7 @@ class TrackedBody {
 public:
 	static void initialize();
 
-	TrackedBody(int index, float smoothingFactor, int contourPoints = 150);
+	TrackedBody(int index, float smoothingFactor, int contourPoints = 150, int noDelayedContours = 20);
 	void setOSCManager(ofOSCManager* m);
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
 	void setTracked(bool isTracked);
@@ -37,6 +37,7 @@ public:
 	virtual void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper);
 	virtual void updateContourData(vector<ofPolyline> contours);
 	virtual void updateTextureData(ofImage texture);
+	void updateDelayedContours();
 	void updateSkeletonContourDataFromSerialized(string s);
 	void setDrawMode(int drawMode);
 
@@ -65,6 +66,7 @@ public:
 
 	void assignInstrument();
 	void reassignInstrument();
+	void removeInstrument();
 	void assignInstrument(int instrumentId);
 	int getInstrumentId();
 
@@ -75,7 +77,12 @@ public:
 
 	string serialize();	
 
-	void sendOSCData();
+	virtual void sendOSCData();
+
+	map<JointType, ofxKinectForWindows2::Data::Joint> latestSkeleton;
+	ICoordinateMapper* coordinateMapper;
+	ofPolyline rawContour;
+	ofImage texture;
 
 protected:
 	int index;
@@ -85,23 +92,21 @@ protected:
 	int contourPoints;
 	int noContours;
 	bool isTracked;
+	int contourIndexOffset;
 	ofOSCManager* oscManager;	
 
 	BodySoundPlayer* bodySoundPlayer;
 
-	map<JointType, ofxKinectForWindows2::Data::Joint> latestSkeleton;
-	ICoordinateMapper* coordinateMapper;
-
 	map<JointType, TrackedJoint*> joints;
-
-	ofPolyline rawContour;
+	
 	ofPolyline contour;
-	vector<ofPolyline> delayedContours;
-	ofImage texture;
+	ofPath contourPath;
+	vector<ofPolyline> delayedContours;	
 
 	vector < pair<pair<int, int>, float> > voronoiPoints;
 
 	ofFbo mainFbo;
+	ofFbo polyFbo;
 	ofxBlur blurShader;
 	ofShader speedShader;
 

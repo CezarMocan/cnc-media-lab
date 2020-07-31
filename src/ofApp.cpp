@@ -46,9 +46,9 @@ void ofApp::setup() {
 	TrackedBody::initialize();
 
 	// Contour finder setup
-	contourFinder.setMinAreaRadius(3);
+	contourFinder.setMinAreaRadius(10);
 	contourFinder.setMaxAreaRadius(1000);
-	contourFinder.setThreshold(0);
+	contourFinder.setThreshold(15);
 
 	// GUI setup	
 	this->useBlur = false;
@@ -114,33 +114,199 @@ void ofApp::update() {
 	// Also send the data over OSC
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
-		this->trackedBodies[bodyId]->update();
-		this->trackedBodyRecordings[bodyId]->update();
+		this->trackedBodies[bodyId]->update();		
 		if (this->isServer.get()) {
-			this->trackedBodies[bodyId]->sendOSCData();
-			//this->trackedBodyRecordings[bodyId]->sendOSCData();
+			this->trackedBodies[bodyId]->sendOSCData();			
 		}
 		else {
 			string data = this->trackedBodies[bodyId]->serialize();
 			if (ofGetFrameNum() % 3 == 0)
 				this->networkManager->sendBodyData(bodyId, data);
 		}
-	}	
+	}
+
+	// Update each recording and send data over OSC
+	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+		TrackedBodyRecording* rec = *it;		
+		rec->update();
+		if (this->isServer.get()) {
+			rec->sendOSCData();
+		}
+	}
 
 	if (this->isServer.get()) {
 		for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES; bodyId++) {
-			if (!this->networkManager->isBodyActive(bodyId)) continue;
-			string bodyData = this->networkManager->getBodyData(bodyId);
-			if (bodyData.size() < 2) continue;
-			if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
-				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400);
-				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
-				this->remoteBodies[bodyId]->setTracked(true);
+			if (!this->networkManager->isBodyActive(bodyId)) {
+				if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
+					this->remoteBodies[bodyId]->setTracked(false);
+					this->remoteBodies.erase(bodyId);
+				}
 			}
-			this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
-			this->remoteBodies[bodyId]->update();
-			this->remoteBodies[bodyId]->sendOSCData();
+			else {
+				string bodyData = this->networkManager->getBodyData(bodyId);
+				if (bodyData.size() < 2) continue;
+				if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
+					this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2);
+					this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
+					this->remoteBodies[bodyId]->setTracked(true);
+				}
+				this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
+				this->remoteBodies[bodyId]->update();
+				this->remoteBodies[bodyId]->sendOSCData();
+			}
 		}
+	}
+}
+
+void ofApp::detectBodySkeletons()
+{
+	// Count number of tracked bodies and update skeletons for each tracked body
+	auto& bodies = kinect.getBodySource()->getBodies();
+	vector<int> oldTrackedBodyIds = this->trackedBodyIds;
+	this->trackedBodyIds.clear();
+
+	for (auto& body : bodies) {
+		if (body.tracked) {
+			// Update body skeleton data for tracked bodies
+			this->trackedBodyIds.push_back(body.bodyId);
+
+			if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
+				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2);
+				this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
+			}
+
+			this->trackedBodies[body.bodyId]->setTracked(body.tracked);
+			this->trackedBodies[body.bodyId]->updateSkeletonData(body.joints, coordinateMapper);
+			this->trackedBodies[body.bodyId]->setContourPoints(this->polygonFidelity);
+		}
+		else {
+			// Remove untracked bodies from map
+			for (auto it = oldTrackedBodyIds.begin(); it != oldTrackedBodyIds.end(); ++it) {
+				int index = *it;
+				if (index == body.bodyId) {
+					this->trackedBodies[index]->setTracked(false);
+					this->trackedBodies.erase(index);
+				}
+			}
+		}
+	}
+
+	// Update data for recordings
+	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+		TrackedBodyRecording* rec = *it;
+		if (!rec->getIsRecording()) continue;
+
+		int trackedBodyId = rec->getTrackedBodyIndex();
+
+		// TODO (cez): This only applies to recordings of local bodies. Need to do the same for remote.
+		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
+			rec->stopRecording();			
+		}
+		else {
+			TrackedBody* body = this->trackedBodies[trackedBodyId];
+			rec->updateSkeletonData(body->latestSkeleton, body->coordinateMapper);
+			rec->setContourPoints(this->polygonFidelity);
+		}
+	}
+}
+
+void ofApp::detectBodyContours() {
+	int previewWidth = DEPTH_WIDTH;
+	int previewHeight = DEPTH_HEIGHT;
+
+	// Split up the tracked bodies onto different textures
+	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
+		const int bodyId = this->trackedBodyIds[i];
+		float t1 = ofGetSystemTimeMillis();
+		bodyFbo.begin();
+		ofClear(0, 0, 0, 255);
+		bodyIndexShader.begin();
+		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
+		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
+		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
+		bodyIndexShader.end();
+		bodyFbo.end();
+		float t2 = ofGetSystemTimeMillis();
+
+		/*
+		bodyDebugFbo.begin();
+		bodyIndexShader.begin();
+		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
+		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
+		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
+		bodyIndexShader.end();
+		bodyDebugFbo.end();
+		*/
+
+		bodyFbo.getTexture().readToPixels(bodyPixels);
+		float t3 = ofGetSystemTimeMillis();		
+		bodyImage.setFromPixels(bodyPixels);
+		float t4 = ofGetSystemTimeMillis();
+		bodyImage.update();
+		float t5 = ofGetSystemTimeMillis();
+
+		contourFinder.findContours(bodyImage);
+		float t6 = ofGetSystemTimeMillis();
+		
+		TrackedBody* currentBody = this->trackedBodies[bodyId];
+		currentBody->updateContourData(contourFinder.getPolylines());
+		currentBody->updateTextureData(bodyImage);
+
+		float t7 = ofGetSystemTimeMillis();
+
+		//ofLogNotice() << (t2 - t1) << " " << (t3 - t2) << " " << (t4 - t3) << " " << (t5 - t4) << " " << (t6 - t5) << " " << (t7 - t6);		
+	}
+
+	// Update data for recordings
+	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+		TrackedBodyRecording* rec = *it;
+		if (!rec->getIsRecording()) continue;
+
+		int trackedBodyId = rec->getTrackedBodyIndex();
+
+		//TODO (cez): This only works for local recordings
+		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
+			rec->stopRecording();
+		}
+		else {
+			TrackedBody* body = this->trackedBodies[trackedBodyId];
+			rec->updateContourData({ body->rawContour });
+			//rec->updateTextureData(body->texture);
+		}
+	}
+}
+
+TrackedBodyRecording* ofApp::createBodyRecording(int bodyId)
+{
+	TrackedBodyRecording* rec = new TrackedBodyRecording(bodyId, 0.75, 400, 2);
+	rec->setOSCManager(this->oscSoundManager);
+	rec->setTracked(true);
+	this->activeBodyRecordings.push_back(rec);
+
+	return rec;
+}
+
+//--------------------------------------------------------------
+void ofApp::draw() {
+	if (this->networkManager == NULL)
+		this->networkGui.draw();
+	else {
+		ofClear(0, 0, 0, 255);
+
+		bodyDebugFbo.begin();
+		ofClear(0, 0, 0, 255);
+		bodyDebugFbo.end();
+
+		this->detectBodySkeletons();
+		this->detectBodyContours();
+
+		//this->drawDebug();
+		this->drawAlternate();
+		// Draw GUI		
+		stringstream ss;
+		ss << "fps : " << ofGetFrameRate() << endl;		
+		ofDrawBitmapStringHighlight(ss.str(), 20, 20);
+		//gui.draw();	
 	}
 }
 
@@ -164,16 +330,15 @@ void ofApp::drawRemoteBodies(int drawMode) {
 }
 
 void ofApp::drawTrackedBodyRecordings(int drawMode) {
-	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-		const int bodyId = this->trackedBodyIds[i];
-		TrackedBodyRecording* body = this->trackedBodyRecordings[bodyId];
-		body->setDrawMode(drawMode);
-		body->draw();
+	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+		TrackedBodyRecording* rec = *it;
+		rec->setDrawMode(drawMode);
+		rec->draw();
 	}
 }
 
 void ofApp::drawDebug()
-{	
+{
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
 
@@ -229,9 +394,14 @@ void ofApp::drawAlternate() {
 		this->drawTrackedBodies(BDRAW_MODE_JOINTS | BDRAW_MODE_SOUND);
 		break;
 	case 1:
-		this->drawTrackedBodyRecordings(BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
-		this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
+		/*
+		this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR | BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
+		this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
 		this->drawRemoteBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
+		*/
+		this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR);
+		this->drawTrackedBodies(BDRAW_MODE_CONTOUR);
+		this->drawRemoteBodies(BDRAW_MODE_CONTOUR);
 		//this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
 		break;
 	case 2:
@@ -320,17 +490,17 @@ void ofApp::drawVoronoi() {
 
 		//mesh.clear();		
 
-		for (int j = 0; j < cells[i].points.size(); j++) {			
+		for (int j = 0; j < cells[i].points.size(); j++) {
 			//if (!this->isBorder(cells[i].points[j]))
 			if (this->voronoiFillMode.get()) {
-				mesh.addVertex(cells[i].points[j]);				
+				mesh.addVertex(cells[i].points[j]);
 			}
 			else {
 				if (this->voronoiConnectCellCenters.get())
 					pl.addVertex(cells[i].centroid);
 				pl.addVertex(cells[i].points[j]);
 			}
-		}		
+		}
 		pl.close();
 		//ofSetColor(30);
 		//ofSetColor(ofColor::fromHsb(255. * i / cells.size(), 255, 128. * i / cells.size() + 128));
@@ -338,7 +508,7 @@ void ofApp::drawVoronoi() {
 			ofSetColor(ofColor::fromHsb(voronoiBackgroundHue.get(), 255, 10 * (i % 4) + 128));
 		else
 			ofSetColor(ofColor::fromHsb(voronoiBodyHue.get(), 255, 5 * (i % 4) + 128));
-		
+
 		if (this->voronoiFillMode.get())
 			mesh.draw();
 		else
@@ -354,113 +524,6 @@ void ofApp::drawVoronoi() {
 	ofPopStyle();
 }
 
-void ofApp::detectBodySkeletons()
-{
-	// Count number of tracked bodies and update skeletons for each tracked body
-	numBodiesTracked = 0;
-	auto& bodies = kinect.getBodySource()->getBodies();
-	this->trackedBodyIds.clear();
-
-	for (auto& body : bodies) {
-		if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
-			this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400);
-			this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
-			this->trackedBodyRecordings[body.bodyId] = new TrackedBodyRecording(body.bodyId, 0.75, 400);
-		}
-
-		this->trackedBodies[body.bodyId]->setTracked(body.tracked);
-		this->trackedBodyRecordings[body.bodyId]->setTracked(true);
-
-		if (body.tracked) {
-			numBodiesTracked++;
-			auto joints = body.joints;
-			this->trackedBodyIds.push_back(body.bodyId);
-
-			this->trackedBodies[body.bodyId]->updateSkeletonData(joints, coordinateMapper);
-			this->trackedBodyRecordings[body.bodyId]->updateSkeletonData(joints, coordinateMapper);
-		}
-	}
-
-	// Update each tracked body after skeleton data was entered
-	// Also send the data over OSC
-	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-		const int bodyId = this->trackedBodyIds[i];
-		this->trackedBodies[bodyId]->setContourPoints(this->polygonFidelity);
-		this->trackedBodyRecordings[bodyId]->setContourPoints(this->polygonFidelity);
-	}
-}
-
-void ofApp::detectBodyContours() {
-	int previewWidth = DEPTH_WIDTH;
-	int previewHeight = DEPTH_HEIGHT;
-
-	// Split up the tracked bodies onto different textures
-	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-		const int bodyId = this->trackedBodyIds[i];
-		bodyFbo.begin();
-		ofClear(0, 0, 0, 255);
-		bodyIndexShader.begin();
-		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
-		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
-		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
-		bodyIndexShader.end();
-		bodyFbo.end();
-
-		bodyDebugFbo.begin();
-		bodyIndexShader.begin();
-		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
-		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
-		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
-		bodyIndexShader.end();
-		bodyDebugFbo.end();
-
-		bodyFbo.getTexture().readToPixels(bodyPixels);
-		bodyImage.setFromPixels(bodyPixels);
-		bodyImage.update();
-
-		contourFinder.findContours(bodyImage);
-
-		TrackedBody* currentBody = this->trackedBodies[bodyId];
-		currentBody->updateContourData(contourFinder.getPolylines());
-		currentBody->updateTextureData(bodyImage);
-
-		TrackedBodyRecording* currentBodyRecording = this->trackedBodyRecordings[bodyId];
-		currentBodyRecording->updateContourData(contourFinder.getPolylines());
-		currentBodyRecording->updateTextureData(bodyImage);
-
-		//string serialized = currentBody->serialize();
-		//currentBody->deserialize(serialized);
-	}
-}
-
-//--------------------------------------------------------------
-void ofApp::draw() {
-	if (this->networkManager == NULL)
-		this->networkGui.draw();
-	else {
-		ofClear(0, 0, 0, 255);
-
-		bodyDebugFbo.begin();
-		ofClear(0, 0, 0, 255);
-		bodyDebugFbo.end();
-
-		this->detectBodySkeletons();
-		this->detectBodyContours();
-
-		//this->drawDebug();
-		this->drawAlternate();
-		// Draw GUI
-		/*
-		stringstream ss;
-		ss << "fps : " << ofGetFrameRate() << endl;
-		ss << "Tracked bodies: " << numBodiesTracked << endl;
-		if (!bHaveAllStreams) ss << endl << "Not all streams detected!";
-		ofDrawBitmapStringHighlight(ss.str(), 20, 20);
-		*/
-		//gui.draw();	
-	}
-}
-
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 	switch (key) {
@@ -473,16 +536,22 @@ void ofApp::keyPressed(int key) {
 	case 'a':
 		for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 			const int bodyId = this->trackedBodyIds[i];
-			TrackedBodyRecording* body = this->trackedBodyRecordings[bodyId];
-			body->startRecording();			
+			TrackedBodyRecording* body = this->createBodyRecording(bodyId);
+			body->startRecording();
 		}
 		break;
 	case 's':
-		for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-			const int bodyId = this->trackedBodyIds[i];
-			TrackedBodyRecording* body = this->trackedBodyRecordings[bodyId];
-			body->startPlayLoop();
+		for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+			TrackedBodyRecording* rec = *it;
+			if (!rec->getIsPlaying()) rec->startPlayLoop();
 		}
+		break;
+	case 'd':
+		for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
+			TrackedBodyRecording* rec = *it;
+			rec->removeInstrument();
+		}
+		this->activeBodyRecordings.clear();
 		break;
 	}
 }

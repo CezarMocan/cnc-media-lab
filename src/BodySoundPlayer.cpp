@@ -122,7 +122,6 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 
 	// Sequence of MIDI messages, mapped on a pattern of 16
 	int whichPattern = (int)floor(ofRandom(MappingPatterns::to16[this->iP.size()].size()));
-	//ofRandom()
 	vector<int> pattern = MappingPatterns::to16[this->iP.size()][whichPattern];
 	vector<int> jointSequencePatternMidi;
 
@@ -149,7 +148,8 @@ void BodySoundPlayer::draw()
 	//ofScale(2.0);
 	ofSetColor(200, 59, 25);
 	ofFill();
-	ofDrawCircle(this->currentlyPlayingInterestPoints[this->currentNoteIndex], 5.);
+	if (this->currentNoteIndex < this->currentlyPlayingInterestPoints.size())
+		ofDrawCircle(this->currentlyPlayingInterestPoints[this->currentNoteIndex], 5.);
 	ofPopStyle();
 	ofPopMatrix();
 }

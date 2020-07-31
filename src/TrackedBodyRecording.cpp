@@ -1,5 +1,20 @@
 #include "TrackedBodyRecording.h"
 
+int TrackedBodyRecording::getTrackedBodyIndex()
+{
+	return this->index - Constants::BODY_RECORDINGS_ID_OFFSET;
+}
+
+bool TrackedBodyRecording::getIsRecording()
+{
+	return this->isRecording;
+}
+
+bool TrackedBodyRecording::getIsPlaying()
+{
+	return this->isPlaying;
+}
+
 void TrackedBodyRecording::startRecording()
 {
 	this->isRecording = true;
@@ -47,15 +62,17 @@ void TrackedBodyRecording::update()
 		this->recordedJoints.push_back(newJoints);
 
 		// Record raster
-		this->recordedTextures.push_back(this->texture);
+		//this->recordedTextures.push_back(this->texture);
 	}
 	else if (isPlaying) {
 		if (this->recordedContours.size() == 0) return;
-		this->playhead = (this->playhead + 1) % this->recordedContours.size();
+		this->playhead += this->playDirection;
+		if (this->playhead == this->recordedContours.size() - 1 || this->playhead == 0)
+			this->playDirection *= -1;		
 
 		this->contour = this->recordedContours[this->playhead];
 		this->joints = this->recordedJoints[this->playhead];
-		this->texture = this->recordedTextures[this->playhead];
+		//this->texture = this->recordedTextures[this->playhead];
 				
 		this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
 		this->bodySoundPlayer->setAccentSpeed(this->getJointSpeed(JointType_WristRight));
@@ -86,4 +103,9 @@ void TrackedBodyRecording::updateContourData(vector<ofPolyline> contours)
 void TrackedBodyRecording::updateTextureData(ofImage texture)
 {
 	if (this->isRecording) TrackedBody::updateTextureData(texture);
+}
+
+void TrackedBodyRecording::sendOSCData()
+{
+	if (this->isPlaying) TrackedBody::sendOSCData();
 }
