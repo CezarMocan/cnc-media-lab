@@ -104,6 +104,7 @@ namespace Constants {
 
 	const int MAX_TRACKED_BODIES = 9;
 	const int BODY_RECORDINGS_ID_OFFSET = 10;
+	const int MAX_BODY_RECORDINGS = 20;
 	const int MAX_INSTRUMENTS = 30;
 
 	const string OSC_HOST = "127.0.0.1";

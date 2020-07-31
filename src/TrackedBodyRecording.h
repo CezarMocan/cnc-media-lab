@@ -4,7 +4,7 @@
 
 class TrackedBodyRecording : public TrackedBody {
 public:
-	TrackedBodyRecording(int index, float smoothingFactor, int contourPoints, int noDelayedContours = 20) : TrackedBody(Constants::BODY_RECORDINGS_ID_OFFSET + index, smoothingFactor, contourPoints, noDelayedContours) {
+	TrackedBodyRecording(int index, float smoothingFactor, int contourPoints, int noDelayedContours = 20) : TrackedBody(index, smoothingFactor, contourPoints, noDelayedContours) {
 		this->isPlaying = false;
 		this->isRecording = false;
 		this->playhead = 0;
@@ -12,6 +12,7 @@ public:
 	};
 
 	int getTrackedBodyIndex();
+	void setTrackedBodyIndex(int index);
 
 	bool getIsRecording();
 	bool getIsPlaying();
@@ -33,6 +34,7 @@ private:
 	int playDirection;
 	bool isRecording;
 	bool isPlaying;
+	int trackedBodyIndex;
 
 	vector<map<JointType, TrackedJoint> > recordedJoints;
 	vector<ofPolyline> recordedContours;

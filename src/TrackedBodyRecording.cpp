@@ -2,7 +2,12 @@
 
 int TrackedBodyRecording::getTrackedBodyIndex()
 {
-	return this->index - Constants::BODY_RECORDINGS_ID_OFFSET;
+	return this->trackedBodyIndex;
+}
+
+void TrackedBodyRecording::setTrackedBodyIndex(int index)
+{
+	this->trackedBodyIndex = index;
 }
 
 bool TrackedBodyRecording::getIsRecording()

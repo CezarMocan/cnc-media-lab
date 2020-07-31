@@ -28,7 +28,7 @@ public:
 	void detectBodySkeletons();
 	void detectBodyContours();
 
-	TrackedBodyRecording* createBodyRecording(int bodyId, int instrumentId);
+	TrackedBodyRecording* createBodyRecording(int recordingIndex, int bodyId, int instrumentId);
 	vector<TrackedBodyRecording*> activeBodyRecordings;
 
 	bool isBorder(ofDefaultVec3 _pt);

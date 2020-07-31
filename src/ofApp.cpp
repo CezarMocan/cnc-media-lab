@@ -150,7 +150,7 @@ void ofApp::update() {
 	}
 
 	// Get data from peer and forward to MaxMSP
-	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
+	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) {
 			if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
 				this->remoteBodies[bodyId]->setTracked(false);
@@ -291,9 +291,10 @@ void ofApp::detectBodyContours() {
 	}
 }
 
-TrackedBodyRecording* ofApp::createBodyRecording(int bodyId, int instrumentId)
+TrackedBodyRecording* ofApp::createBodyRecording(int recordingIndex, int bodyId, int instrumentId)
 {
-	TrackedBodyRecording* rec = new TrackedBodyRecording(bodyId, 0.75, 400, 2);
+	TrackedBodyRecording* rec = new TrackedBodyRecording(recordingIndex, 0.75, 400, 2);
+	rec->setTrackedBodyIndex(bodyId);
 	rec->setOSCManager(this->oscSoundManager);
 	rec->setTracked(true);
 	rec->setIsRecording(true);
@@ -339,7 +340,7 @@ void ofApp::drawTrackedBodies(int drawMode) {
 }
 
 void ofApp::drawRemoteBodies(int drawMode) {
-	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
+	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) continue;
 
 		int remoteDrawMode;
@@ -542,9 +543,9 @@ void ofApp::keyPressed(int key) {
 		for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 			const int bodyId = this->trackedBodyIds[i];
 			TrackedBody* originalBody = this->trackedBodies[bodyId];
-			const int instrumentId = originalBody->getInstrumentId();			
+			const int instrumentId = originalBody->getInstrumentId();
 
-			TrackedBodyRecording* body = this->createBodyRecording(bodyId, instrumentId);
+			TrackedBodyRecording* body = this->createBodyRecording(Constants::BODY_RECORDINGS_ID_OFFSET + this->activeBodyRecordings.size(), bodyId, instrumentId);
 			body->startRecording();
 		}
 		break;
