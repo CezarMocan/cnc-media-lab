@@ -74,6 +74,12 @@ void ofOSCManager::sendBodyMidiSequence(int bodyId, vector<int> midiSequence, ve
 	this->sendStringMessageToAddress(OscCategories::BODY_SEQUENCE_RAW, ss.str());
 }
 
+void ofOSCManager::sendIsRecording(int bodyId, bool isRecording)
+{
+	stringstream ss;
+	ss << "/" << bodyId << " " << (int)isRecording;
+	this->sendStringMessageToAddress(OscCategories::BODY_IS_RECORDING, ss.str());
+}
 
 void ofOSCManager::sendAllData()
 {

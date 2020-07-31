@@ -111,6 +111,7 @@ namespace Constants {
 
 	const string SKELETON_DELIMITER = "__SKELETON__";
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
+	const string IS_RECORDING_DELIMITER = "__IS_RECORDING__";
 	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;	
 }
 
@@ -119,6 +120,7 @@ namespace OscCategories {
 
 	const string BODY_SEQUENCE = "body_sequence";
 	const string BODY_SEQUENCE_RAW = "raw_body_sequence";
+	const string BODY_IS_RECORDING = "body_is_recording";
 
 	const string BODY = "body";	
 	const string ENVIRONMENT = "env";

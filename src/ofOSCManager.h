@@ -21,6 +21,7 @@ public:
 	void sendEnvironmentMessage(string parameter, int value);
 
 	void sendBodyMidiSequence(int bodyId, vector<int> midiSequence, vector<int> jointSequenceRaw);
+	void sendIsRecording(int bodyId, bool isRecording);
 
 	void sendAllData();
 	void sendHandDistanceData();

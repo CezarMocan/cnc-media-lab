@@ -34,6 +34,10 @@ public:
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
 	void setTracked(bool isTracked);
 	void setContourPoints(int contourPoints);
+
+	void setIsRecording(bool isRecording);
+	bool getIsRecording();
+
 	virtual void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper);
 	virtual void updateContourData(vector<ofPolyline> contours);
 	virtual void updateTextureData(ofImage texture);
@@ -94,6 +98,7 @@ protected:
 	int noContours;
 	bool isTracked;
 	int contourIndexOffset;
+	bool isRecording;
 	ofOSCManager* oscManager;	
 
 	BodySoundPlayer* bodySoundPlayer;

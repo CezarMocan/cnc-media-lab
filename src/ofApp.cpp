@@ -13,7 +13,7 @@ using namespace Constants;
 //--------------------------------------------------------------
 void ofApp::setup() {
 	// Kinect setup
-	ofSetWindowShape(3 * DEPTH_WIDTH, 2 * DEPTH_HEIGHT);
+	ofSetWindowShape(2 * DEPTH_WIDTH, 2 * DEPTH_HEIGHT);
 
 	kinect.open();
 	kinect.initDepthSource();
@@ -58,23 +58,38 @@ void ofApp::setup() {
 	this->voronoiForceCellsInsideBody = false;
 	this->voronoiFillMode = false;
 	this->voronoiDrawCellCenters = false;
-	this->voronoiConnectCellCenters = false;
+	this->voronoiConnectCellCenters = false;	
 
-	ofParameter<float> voronoiEnvironmentNoise;
-
-
+	this->guiVisible = true;
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
-	gui.add(voronoiEnvironmentCells.set("[V] Background Cells", 50, 0, 1000));
-	gui.add(voronoiBodyCells.set("[V] Body Cells", 250, 0, 1000));
-	gui.add(voronoiForceCellsInsideBody.set("[V] Force cells inside body", false));
-	gui.add(voronoiSmoothing.set("[V] Cell smoothing", 0., 0., 30.));
-	gui.add(voronoiEnvironmentNoise.set("[V] Background Noise", 0., 0., 3.));
-	gui.add(voronoiFillMode.set("[V] Fill mode", false));	
-	gui.add(voronoiBackgroundHue.set("[V] Background Hue", 0, 0, 255));
-	gui.add(voronoiBodyHue.set("[V] Body Hue", 128, 0, 255));
-	gui.add(voronoiDrawCellCenters.set("[V] Draw Cell Centers", false));
-	gui.add(voronoiConnectCellCenters.set("[V] Connect Cell Centers", false));
+	gui.add(localBodyDrawsContour.set("Local Body: Contour", true));
+	gui.add(localBodyDrawsGeometry.set("Local Body: Geometric", false));
+	gui.add(localBodyDrawsFill.set("Local Body: Fill", false));
+	gui.add(localBodyDrawsJoints.set("Local Body: Joints", false));
+
+	gui.add(remoteBodyDrawsContour.set("Remote Body: Contour", true));
+	gui.add(remoteBodyDrawsGeometry.set("Remote Body: Geometric", false));
+	gui.add(remoteBodyDrawsFill.set("Remote Body: Fill", false));
+	gui.add(remoteBodyDrawsJoints.set("Remote Body: Joints", false));
+
+	gui.add(recordedBodyDrawsContour.set("Recorded Body: Contour", true));
+	gui.add(recordedBodyDrawsGeometry.set("Recorded Body: Geometric", false));
+	gui.add(recordedBodyDrawsFill.set("Recorded Body: Fill", false));
+	gui.add(recordedBodyDrawsJoints.set("Recorded Body: Joints", false));
+
+	ofParameter<float> voronoiEnvironmentNoise;
+	voronoiGui.setup();
+	voronoiGui.add(voronoiEnvironmentCells.set("[V] Background Cells", 50, 0, 1000));
+	voronoiGui.add(voronoiBodyCells.set("[V] Body Cells", 250, 0, 1000));
+	voronoiGui.add(voronoiForceCellsInsideBody.set("[V] Force cells inside body", false));
+	voronoiGui.add(voronoiSmoothing.set("[V] Cell smoothing", 0., 0., 30.));
+	voronoiGui.add(voronoiEnvironmentNoise.set("[V] Background Noise", 0., 0., 3.));
+	voronoiGui.add(voronoiFillMode.set("[V] Fill mode", false));
+	voronoiGui.add(voronoiBackgroundHue.set("[V] Background Hue", 0, 0, 255));
+	voronoiGui.add(voronoiBodyHue.set("[V] Body Hue", 128, 0, 255));
+	voronoiGui.add(voronoiDrawCellCenters.set("[V] Draw Cell Centers", false));
+	voronoiGui.add(voronoiConnectCellCenters.set("[V] Connect Cell Centers", false));
 
 	MidiPlayer::loadSoundFonts();
 
@@ -276,11 +291,13 @@ void ofApp::detectBodyContours() {
 	}
 }
 
-TrackedBodyRecording* ofApp::createBodyRecording(int bodyId)
+TrackedBodyRecording* ofApp::createBodyRecording(int bodyId, int instrumentId)
 {
 	TrackedBodyRecording* rec = new TrackedBodyRecording(bodyId, 0.75, 400, 2);
 	rec->setOSCManager(this->oscSoundManager);
 	rec->setTracked(true);
+	rec->setIsRecording(true);
+	rec->assignInstrument(instrumentId);
 	this->activeBodyRecordings.push_back(rec);
 
 	return rec;
@@ -303,10 +320,12 @@ void ofApp::draw() {
 		//this->drawDebug();
 		this->drawAlternate();
 		// Draw GUI		
-		stringstream ss;
-		ss << "fps : " << ofGetFrameRate() << endl;		
-		ofDrawBitmapStringHighlight(ss.str(), 20, 20);
-		//gui.draw();	
+		if (this->guiVisible) {
+			gui.draw();
+			stringstream ss;
+			ss << "fps : " << ofGetFrameRate() << endl;
+			ofDrawBitmapStringHighlight(ss.str(), 20, ofGetWindowHeight() - 40);		
+		}
 	}
 }
 
@@ -322,8 +341,24 @@ void ofApp::drawTrackedBodies(int drawMode) {
 void ofApp::drawRemoteBodies(int drawMode) {
 	for (int bodyId = 0; bodyId < Constants::MAX_TRACKED_BODIES + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) continue;
+
+		int remoteDrawMode;
+		
 		TrackedBody* body = this->remoteBodies[bodyId];
-		body->setDrawMode(drawMode);
+
+		if (body->getIsRecording()) {
+			remoteDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
+				(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
+				(recordedBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
+		}
+		else {
+			remoteDrawMode = (remoteBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
+				(remoteBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
+				(remoteBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+				(remoteBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
+		}
+		body->setDrawMode(remoteDrawMode);
 		body->draw();
 	}
 }
@@ -376,52 +411,27 @@ void ofApp::drawDebug()
 }
 
 void ofApp::drawAlternate() {
-	const int frame = ofGetFrameNum();
-	if (frame % 20 == 0) {
-		currView = (currView + 1) % 7;
-	}
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
 
 	ofPushMatrix();
 	ofScale(2.0);
 
-	currView = 1;
+	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
+		(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
+		(recordedBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+		(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 
-	switch (currView) {
-	case 0:
-		this->drawTrackedBodies(BDRAW_MODE_JOINTS | BDRAW_MODE_SOUND);
-		break;
-	case 1:
-		/*
-		this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR | BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
-		this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
-		this->drawRemoteBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
-		*/
-		this->drawTrackedBodyRecordings(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
-		this->drawTrackedBodies(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
-		this->drawRemoteBodies(BDRAW_MODE_MOVEMENT | BDRAW_MODE_CONTOUR);
-		//this->drawTrackedBodyRecordings(BDRAW_MODE_CONTOUR | BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
-		break;
-	case 2:
-		this->drawTrackedBodies(BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
-		break;
-	case 3:
-		bodyDebugFbo.draw(0, 0);
-		break;
-	case 4:
-		kinect.getBodySource()->drawProjected(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT);
-		break;
-	case 5:
-		this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_SOUND);
-		break;
-	case 6:
-		this->drawVoronoi();
-		break;
-	default:
-		bodyDebugFbo.draw(0, 0);
-		break;
-	}
+	this->drawTrackedBodyRecordings(recordedDrawMode);
+
+	int localDrawMode = (localBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
+		(localBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
+		(localBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+		(localBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
+
+	this->drawTrackedBodies(localDrawMode);
+
+	this->drawRemoteBodies(0);
 
 	ofPopMatrix();
 }
@@ -526,23 +536,27 @@ void ofApp::drawVoronoi() {
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 	switch (key) {
-	case 'm':
-		break;
-	case 'r':
-		break;
-	case 't':
-		break;
+	case 'h':
+		this->guiVisible = !this->guiVisible;
 	case 'a':
 		for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 			const int bodyId = this->trackedBodyIds[i];
-			TrackedBodyRecording* body = this->createBodyRecording(bodyId);
+			TrackedBody* originalBody = this->trackedBodies[bodyId];
+			const int instrumentId = originalBody->getInstrumentId();			
+
+			TrackedBodyRecording* body = this->createBodyRecording(bodyId, instrumentId);
 			body->startRecording();
 		}
 		break;
 	case 's':
 		for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 			TrackedBodyRecording* rec = *it;
-			if (!rec->getIsPlaying()) rec->startPlayLoop();
+			if (!rec->getIsPlaying()) {
+				int originalBodyId = rec->getTrackedBodyIndex();
+				TrackedBody* originalBody = this->trackedBodies[originalBodyId];
+				originalBody->assignInstrument();
+				rec->startPlayLoop();
+			}
 		}
 		break;
 	case 'd':

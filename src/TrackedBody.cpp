@@ -31,6 +31,8 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 		{JointType_AnkleLeft, 1.0}, {JointType_AnkleRight, 1.0},
 		{JointType_KneeLeft, 1.5}, {JointType_KneeRight, 1.5},
 	};
+
+	this->isRecording = false;
 }
 
 void TrackedBody::setOSCManager(ofOSCManager* m)
@@ -63,6 +65,16 @@ void TrackedBody::setContourPoints(int contourPoints)
 		this->delayedContours.clear();
 		this->voronoiPoints.clear();
 	}
+}
+
+void TrackedBody::setIsRecording(bool isRecording)
+{
+	this->isRecording = isRecording;
+}
+
+bool TrackedBody::getIsRecording()
+{
+	return this->isRecording;
 }
 
 void TrackedBody::updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> skeleton, ICoordinateMapper* coordinateMapper)
@@ -589,6 +601,8 @@ string TrackedBody::serialize()
 	68 72
 	...
 	108, 112
+	__IS_RECORDING__ // Constants::IS_RECORDING_DELIMITER
+	0 // or 1
 	----
 	*/
 	stringstream ss;
@@ -611,6 +625,9 @@ string TrackedBody::serialize()
 	for (int i = 0; i < this->rawContour.size(); i++) {
 		ss << this->rawContour[i].x << " " << this->rawContour[i].y << "\n";
 	}
+
+	ss << Constants::IS_RECORDING_DELIMITER << "\n";
+	ss << (int)this->isRecording << "\n";
 
 	return ss.str();
 }
@@ -647,14 +664,23 @@ void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
 	}
 
 	this->updateContourData({ c });
+
+	ss >> delimiter;
+	bool isRecording;
+	ss >> isRecording;
+	this->setIsRecording(isRecording);
 }
 
 void TrackedBody::sendOSCData()
 {
 	float value;
 	float normalizedValue;
+	if (ofGetFrameNum() % 2 != 0) return;
 	// Sequencer sound data
 	this->bodySoundPlayer->sendOSC(this->instrumentId);
+
+	// Send whether is recording
+	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 
 	// Distances
 	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_WristRight);

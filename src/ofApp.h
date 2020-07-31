@@ -28,7 +28,7 @@ public:
 	void detectBodySkeletons();
 	void detectBodyContours();
 
-	TrackedBodyRecording* createBodyRecording(int bodyId);
+	TrackedBodyRecording* createBodyRecording(int bodyId, int instrumentId);
 	vector<TrackedBodyRecording*> activeBodyRecordings;
 
 	bool isBorder(ofDefaultVec3 _pt);
@@ -73,14 +73,34 @@ public:
 	float headX = 0, headY = 0;
 	int currView = 0;
 
+
+	bool guiVisible;
 	ofxPanel gui;
 	ofParameter<int> radius;
 	ofParameter<int> polygonFidelity;
+	
+	ofParameter<bool> localBodyDrawsGeometry;
+	ofParameter<bool> localBodyDrawsJoints;
+	ofParameter<bool> localBodyDrawsFill;
+	ofParameter<bool> localBodyDrawsContour;
+
+	ofParameter<bool> remoteBodyDrawsGeometry;
+	ofParameter<bool> remoteBodyDrawsJoints;
+	ofParameter<bool> remoteBodyDrawsFill;
+	ofParameter<bool> remoteBodyDrawsContour;
+
+	ofParameter<bool> recordedBodyDrawsGeometry;
+	ofParameter<bool> recordedBodyDrawsJoints;
+	ofParameter<bool> recordedBodyDrawsFill;
+	ofParameter<bool> recordedBodyDrawsContour;
+
+
 	ofParameter<bool> useGaussian;
 	ofParameter<bool> useBlur;
 	ofParameter<bool> useErode;
 	ofParameter<bool> useDilate;
 
+	ofxPanel voronoiGui;
 	ofParameter<int> voronoiEnvironmentCells;
 	ofParameter<int> voronoiBodyCells;
 	ofParameter<bool> voronoiForceCellsInsideBody;
