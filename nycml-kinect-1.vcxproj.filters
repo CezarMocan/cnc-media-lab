@@ -205,6 +205,12 @@
     <ClCompile Include="src\NetworkManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxClipper\libs\ofxClipper\src\Clipper.cpp">
+      <Filter>addons\ofxClipper\libs\ofxClipper\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.cpp">
+      <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -437,6 +443,36 @@
     </Filter>
     <Filter Include="addons\ofxVoronoi\libs\Voro++2D">
       <UniqueIdentifier>{dc7ee7bb-cf71-4235-a701-e5c2eecced4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper">
+      <UniqueIdentifier>{ddc6572b-4a8c-4070-9071-f502cdc93e42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\src">
+      <UniqueIdentifier>{42c06b58-9fdf-4039-b918-283a92b12b7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs">
+      <UniqueIdentifier>{331a1679-b850-46e9-a6b3-d193e50c68ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\clipper">
+      <UniqueIdentifier>{e0066726-40d6-48aa-961e-0c17d184fe4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\ofxClipper">
+      <UniqueIdentifier>{2ec3fe40-28a8-40b7-af64-70e196beb9e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\clipper\src">
+      <UniqueIdentifier>{5d31ecb6-cc5b-4291-b16d-db206c5c3c6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\clipper\src\cpp">
+      <UniqueIdentifier>{201b6a25-fc4a-4203-b3e6-081d3f63191a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\ofxClipper\src">
+      <UniqueIdentifier>{8cb9536f-366d-47f1-b3db-adb49beaa9e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\ofxClipper\include">
+      <UniqueIdentifier>{d52aa61e-d54c-4c5c-ac3b-a943c4b456ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="addons\ofxClipper\libs\ofxClipper\include\ofx">
+      <UniqueIdentifier>{14be7858-142b-47b1-93b7-aa7f74f8da52}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1546,6 +1582,15 @@
     </ClInclude>
     <ClInclude Include="src\NetworkManager.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxClipper\src\ofxClipper.h">
+      <Filter>addons\ofxClipper\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxClipper\libs\ofxClipper\include\ofx\Clipper.h">
+      <Filter>addons\ofxClipper\libs\ofxClipper\include\ofx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.hpp">
+      <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

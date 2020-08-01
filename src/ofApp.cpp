@@ -418,6 +418,48 @@ void ofApp::drawAlternate() {
 	ofPushMatrix();
 	ofScale(2.0);
 
+	ofPushStyle();
+	ofSetLineWidth(0.5);
+	ofSetColor(255, 225, 128, 255);	
+	vector<ofColor> colors = { ofColor::fromHex(0xDDD8C4), ofColor::fromHex(0xA3C9A8), ofColor::fromHex(0x84B59F), ofColor::fromHex(0x69A297), ofColor::fromHex(0xA97C73) };
+
+	for (int i = 0; i < Scales::PENTATONIC.size(); i++) {
+		float currLineY = (1.0 * i) / (1.0 * Scales::PENTATONIC.size()) * DEPTH_HEIGHT;
+		float nextLineY = (1.0 * i + 1) / (1.0 * Scales::PENTATONIC.size()) * DEPTH_HEIGHT;
+
+		ofNoFill();
+
+		//ofSetColor(colors[i % colors.size()]);
+		ofDrawRectangle(0, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
+
+		//ofSetColor(colors[(int)(i + 3) % colors.size()]);
+		ofDrawRectangle(DEPTH_WIDTH / 2, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
+		//ofDrawLine(0, currLineY, DEPTH_WIDTH, currLineY);
+	}
+	ofDrawLine(DEPTH_WIDTH / 2, 0, DEPTH_WIDTH / 2, DEPTH_HEIGHT);
+	ofPopStyle();
+
+	clipper.Clear();
+	if (this->trackedBodyIds.size() > 0) {
+		int bodyId = this->trackedBodyIds[0];
+		clipper.addPolyline(this->trackedBodies[bodyId]->contour, ClipperLib::ptSubject);
+		ofPolyline rect;
+		rect.addVertex(0, DEPTH_HEIGHT / 2);
+		rect.addVertex(DEPTH_WIDTH, DEPTH_HEIGHT / 2);
+		rect.addVertex(DEPTH_WIDTH, DEPTH_HEIGHT / 2 + 50);
+		rect.addVertex(0, DEPTH_HEIGHT / 2 + 50);
+		rect.close();
+		clipper.addPolyline(rect, ClipperLib::ptClip);
+
+		auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
+		ofPushStyle();
+		ofSetColor(255, 0, 0, 255);
+		for (auto& line : intersection) {
+			line.draw();
+		}
+		ofPopStyle();
+	}	
+
 	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 		(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
 		(recordedBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |

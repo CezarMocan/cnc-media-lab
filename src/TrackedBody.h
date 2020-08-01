@@ -86,6 +86,7 @@ public:
 	map<JointType, ofxKinectForWindows2::Data::Joint> latestSkeleton;
 	ICoordinateMapper* coordinateMapper;
 	ofPolyline rawContour;
+	ofPolyline contour;
 	ofImage texture;
 
 	int index;
@@ -104,8 +105,7 @@ protected:
 	BodySoundPlayer* bodySoundPlayer;
 
 	map<JointType, TrackedJoint*> joints;
-	
-	ofPolyline contour;
+		
 	ofPath contourPath;
 	vector<ofPolyline> delayedContours;	
 

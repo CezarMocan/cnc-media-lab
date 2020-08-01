@@ -11,6 +11,7 @@
 #include "MidiPlayer.h"
 #include "BodySoundPlayer.h"
 #include "NetworkManager.h"
+#include "ofxClipper.h"
 
 class ofApp : public ofBaseApp {
 
@@ -120,4 +121,5 @@ public:
 	void peerConnectButtonPressed();
 	NetworkManager* networkManager;
 
+	ofx::Clipper clipper;
 };
