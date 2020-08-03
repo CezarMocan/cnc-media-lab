@@ -20,11 +20,12 @@ public:
 	void update();
 	void draw();
 	void drawDebug();
+	void drawSequencer();
 	void drawAlternate();
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);
 	void drawTrackedBodyRecordings(int drawMode);
-	void drawVoronoi();
+	void drawVoronoi();	
 
 	void detectBodySkeletons();
 	void detectBodyContours();
@@ -122,4 +123,5 @@ public:
 	NetworkManager* networkManager;
 
 	ofx::Clipper clipper;
+	vector<ofPolyline> sequencerShapes;
 };

@@ -411,6 +411,59 @@ void ofApp::drawDebug()
 	ofPopMatrix();
 }
 
+void ofApp::drawSequencer() {
+	ofPushStyle();
+	ofSetColor(241, 113, 97);
+	ofNoFill();
+	int seqStepSize = 25;
+	ofDrawRectangle(5, 5, seqStepSize, seqStepSize);
+	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
+		int bodyId = trackedBodyIds[i];
+		TrackedBody* body = this->trackedBodies[bodyId];
+		ofVec2f leftHandPos = body->getJointPosition(JointType_AnkleLeft);
+
+		clipper.Clear();
+		clipper.addPolyline(this->trackedBodies[bodyId]->contour, ClipperLib::ptSubject);
+
+		int clipSize = 50;
+		ofRectangle rect = ofRectangle(leftHandPos.x - clipSize / 2, leftHandPos.y - clipSize / 2, clipSize, clipSize);
+		clipper.addRectangle(rect, ClipperLib::ptClip);
+
+		auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
+		glm::vec2 lineOffset = leftHandPos - ofVec2f(clipSize / 2, clipSize / 2);
+		ofPushStyle();		
+		for (auto& line : intersection) {
+			for (auto& point : line) {
+				point = point - lineOffset;
+				float scale = (1.0 * seqStepSize) / (1.0 * clipSize);
+				point.x *= scale; point.y *= scale;
+				point.x += 5; point.y += 5;
+			}			
+		}
+
+		ofPath currentPath;
+		currentPath.clear();
+		for (auto& line : intersection) {
+			currentPath.moveTo(line[0]);
+			for (int i = 1; i < line.size(); i++) {
+				currentPath.lineTo(line[i]);
+			}
+			currentPath.close();
+		}
+		currentPath.setFillColor(ofColor(252, 36, 21));
+		currentPath.setFilled(true);
+		currentPath.draw();
+
+		ofSetColor(241, 113, 97);
+		for (auto& line : intersection) {
+			line.draw();
+		}
+		ofPopStyle();
+
+	}
+	ofPopStyle();
+}
+
 void ofApp::drawAlternate() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
@@ -419,9 +472,22 @@ void ofApp::drawAlternate() {
 	ofScale(2.0);
 
 	ofPushStyle();
+	ofSetColor(25, 32, 28);
+	ofDrawRectangle(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT);
+	ofPopStyle();
+
+	this->drawSequencer();
+
+	/*
+	ofPushStyle();
 	ofSetLineWidth(0.5);
 	ofSetColor(255, 225, 128, 255);	
 	vector<ofColor> colors = { ofColor::fromHex(0xDDD8C4), ofColor::fromHex(0xA3C9A8), ofColor::fromHex(0x84B59F), ofColor::fromHex(0x69A297), ofColor::fromHex(0xA97C73) };
+
+	const int SEQ_FREQ = 1;
+	
+	if (ofGetFrameNum() % SEQ_FREQ == 0)
+		sequencerShapes.clear();
 
 	for (int i = 0; i < Scales::PENTATONIC.size(); i++) {
 		float currLineY = (1.0 * i) / (1.0 * Scales::PENTATONIC.size()) * DEPTH_HEIGHT;
@@ -430,35 +496,125 @@ void ofApp::drawAlternate() {
 		ofNoFill();
 
 		//ofSetColor(colors[i % colors.size()]);
-		ofDrawRectangle(0, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
+		//ofDrawRectangle(0, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
 
 		//ofSetColor(colors[(int)(i + 3) % colors.size()]);
-		ofDrawRectangle(DEPTH_WIDTH / 2, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
-		//ofDrawLine(0, currLineY, DEPTH_WIDTH, currLineY);
+		//ofDrawRectangle(DEPTH_WIDTH / 2, currLineY, DEPTH_WIDTH / 2, nextLineY - currLineY);
+		//ofDrawLine(0, currLineY, DEPTH_WIDTH, currLineY);		
+		if (this->trackedBodyIds.size() > 0 && ofGetFrameNum() % SEQ_FREQ == 0) {
+			float sliceSize = (1.0 * DEPTH_HEIGHT) / (1.0 * Scales::PENTATONIC.size());			
+			int bodyId = this->trackedBodyIds[0];
+
+			vector<ofVec2f> slicesOfInterest = {
+				this->trackedBodies[bodyId]->getJointPosition(JointType_WristLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_WristRight),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_SpineMid),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_Head),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_KneeLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_KneeRight),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_HandLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_HandRight),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_ElbowLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_ElbowRight),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_HipRight),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_HipLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_AnkleLeft),
+				this->trackedBodies[bodyId]->getJointPosition(JointType_AnkleRight),
+			};
+			int found = -1;
+			vector<int> foundSlices;
+			for (int j = 0; j < slicesOfInterest.size(); j++) {
+				int slice = (int)floor(slicesOfInterest[j].y / sliceSize);
+				if (i == slice) foundSlices.push_back(j);
+			}
+			if (foundSlices.size() == 0) continue;
+
+			for (auto& found : foundSlices) {
+				clipper.Clear();
+				clipper.addPolyline(this->trackedBodies[bodyId]->contour, ClipperLib::ptSubject);
+				ofPolyline rect;
+				
+				//rect.addVertex(0, currLineY);
+				//rect.addVertex(DEPTH_WIDTH, currLineY);
+				//rect.addVertex(DEPTH_WIDTH, currLineY + 1 * (nextLineY - currLineY));
+				//rect.addVertex(0, currLineY + 1 * (nextLineY - currLineY));
+				
+				float vSliceSize = DEPTH_WIDTH;//10 * sliceSize;
+				float start, stop;
+				start = slicesOfInterest[found].x - vSliceSize;
+				stop = slicesOfInterest[found].x + vSliceSize;
+				int steps = 50;
+				rect.addVertex(slicesOfInterest[found].x - vSliceSize, currLineY);
+				for (int i = 1; i < steps; i++) {
+					float offset = (1.0 * i) / (1.0 * steps) * 2 * vSliceSize;
+					float noise = ofNoise(offset / 50.0, found, ofGetFrameNum() / 100.);
+					float val = ofMap(noise, 0., 1., -10., 10.);
+					rect.addVertex(slicesOfInterest[found].x - vSliceSize + offset, currLineY + val);
+				}				
+				rect.addVertex(slicesOfInterest[found].x + vSliceSize, currLineY);
+
+				rect.addVertex(slicesOfInterest[found].x + vSliceSize, currLineY + 1 * (nextLineY - currLineY));
+				for (int i = 1; i < steps; i++) {
+					float offset = (1.0 * i) / (1.0 * steps) * 2 * vSliceSize;
+					float noise = ofNoise(offset / 50.0, found, ofGetFrameNum() / 100.);
+					float val = ofMap(noise, 0., 1., -10., 10.);
+					rect.addVertex(slicesOfInterest[found].x + vSliceSize - offset, currLineY + 1 * (nextLineY - currLineY) + val);
+				}
+				rect.addVertex(slicesOfInterest[found].x - vSliceSize, currLineY + 1 * (nextLineY - currLineY));
+
+				rect.close();
+				clipper.addPolyline(rect, ClipperLib::ptClip);
+
+				auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
+				ofPushStyle();
+				int sgn = (i % 2) ? 1 : -1;
+				//ofTranslate(((i % 6) * 10 * sgn) % DEPTH_WIDTH, 0);
+				//ofSetColor(255, 128, 64, 255);
+				ofSetColor(255, 225, 128, 255);
+
+				if (intersection.size() == 0) {
+					ofPopStyle();
+					continue;
+				}
+				ofPolyline line;
+				float minDistance = 1000000000;
+
+				for (auto& currLine : intersection) {
+					if (slicesOfInterest[found].squareDistance(currLine.getCentroid2D()) < minDistance) {
+						minDistance = slicesOfInterest[found].squareDistance(currLine.getCentroid2D());
+						line = currLine;
+					}
+				}
+				line.close();
+
+				sequencerShapes.push_back(line);
+
+				ofPopStyle();
+			}
+		}
 	}
 	ofDrawLine(DEPTH_WIDTH / 2, 0, DEPTH_WIDTH / 2, DEPTH_HEIGHT);
 	ofPopStyle();
 
-	clipper.Clear();
-	if (this->trackedBodyIds.size() > 0) {
-		int bodyId = this->trackedBodyIds[0];
-		clipper.addPolyline(this->trackedBodies[bodyId]->contour, ClipperLib::ptSubject);
-		ofPolyline rect;
-		rect.addVertex(0, DEPTH_HEIGHT / 2);
-		rect.addVertex(DEPTH_WIDTH, DEPTH_HEIGHT / 2);
-		rect.addVertex(DEPTH_WIDTH, DEPTH_HEIGHT / 2 + 50);
-		rect.addVertex(0, DEPTH_HEIGHT / 2 + 50);
-		rect.close();
-		clipper.addPolyline(rect, ClipperLib::ptClip);
-
-		auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
-		ofPushStyle();
-		ofSetColor(255, 0, 0, 255);
-		for (auto& line : intersection) {
-			line.draw();
+	ofPath fillPath;
+	int index = 0;
+	for (auto& line : this->sequencerShapes) {
+		fillPath.clear();
+		fillPath.moveTo(line[0]);
+		for (int i = 1; i < line.size(); i++) {
+			fillPath.lineTo(line[i]);
 		}
-		ofPopStyle();
-	}	
+		fillPath.close();
+		fillPath.setFilled(true);
+		float window = (SEQ_FREQ) / (1.0 * this->sequencerShapes.size());
+		if (ofGetFrameNum() % SEQ_FREQ >= index * window && ofGetFrameNum() % SEQ_FREQ < (index + 1) * window)
+			fillPath.setFillColor(ofColor(255, 125, 28));
+		else
+			fillPath.setFillColor(ofColor(255, 225, 128));
+		fillPath.draw();
+		index++;
+	}
+	*/
 
 	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 		(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |

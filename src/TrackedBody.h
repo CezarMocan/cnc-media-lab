@@ -51,6 +51,7 @@ public:
 	float getJointsAngle(JointType a, JointType b, JointType c);
 	float getJointSpeed(JointType a);
 	float getJointNormalizedSpeed(JointType a);
+	ofVec2f getJointPosition(JointType a);
 
 	ofPolyline getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody);
 

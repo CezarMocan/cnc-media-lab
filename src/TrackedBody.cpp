@@ -238,6 +238,12 @@ float TrackedBody::getJointNormalizedSpeed(JointType a)
 	return speed * weightMultiplier / unit * 200;
 }
 
+ofVec2f TrackedBody::getJointPosition(JointType a)
+{
+	if (this->joints.find(a) == this->joints.end()) return ofVec2f(0, 0);
+	return this->joints[a]->getPosition();
+}
+
 void TrackedBody::update()
 {
 	if (!this->isTracked) return;
@@ -472,11 +478,12 @@ void TrackedBody::drawRaster()
 {
 	if (!this->isTracked) return;
 	if (this->contour.size() < 3) return;
+
+	ofPushMatrix();	
 		
 	this->polyFbo.begin();
 	ofClear(0, 0, 0, 1);
-	this->contourPath.clear();
-	//this->contourPath.setMode(ofPath::POLYLINES);
+	this->contourPath.clear();	
 	this->contourPath.moveTo(this->contour[0]);
 	for (int i = 1; i < this->contour.size(); i++)
 		this->contourPath.lineTo(this->contour[i]);
@@ -514,6 +521,7 @@ void TrackedBody::drawRaster()
 
 	this->speedShader.end();
 	this->mainFbo.end();
+	ofPopMatrix();
 
 	ofPushMatrix();
 	//ofScale(2.0);
@@ -522,7 +530,7 @@ void TrackedBody::drawRaster()
 	this->blurShader.end();
 	this->blurShader.draw();	
 
-	ofPopMatrix();
+	ofPopMatrix();	
 }
 
 void TrackedBody::draw()
