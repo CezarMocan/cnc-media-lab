@@ -12,6 +12,7 @@
 #include "BodySoundPlayer.h"
 #include "NetworkManager.h"
 #include "ofxClipper.h"
+#include "SequencerStep.h"
 
 class ofApp : public ofBaseApp {
 
@@ -123,5 +124,6 @@ public:
 	NetworkManager* networkManager;
 
 	ofx::Clipper clipper;
+	vector<SequencerStep*> sequencerSteps;
 	vector<ofPolyline> sequencerShapes;
 };

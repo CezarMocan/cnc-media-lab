@@ -211,6 +211,9 @@
     <ClCompile Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.cpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
     </ClCompile>
+    <ClCompile Include="src\SequencerStep.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -1591,6 +1594,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.hpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SequencerStep.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

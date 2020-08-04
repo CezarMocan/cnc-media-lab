@@ -103,7 +103,17 @@ void ofApp::setup() {
 	networkGui.add(localPort.set("Local Port", "12347"));
 	networkGui.add(peerConnectButton.setup("Connect"));
 
-	this->networkManager = NULL;	
+	this->networkManager = NULL;
+
+	// Sequencer UI
+	this->sequencerSteps.push_back(new SequencerStep(5, 5, 25, JointType_HandLeft, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(35, 5, 25, JointType_ElbowLeft, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(65, 5, 25, JointType_ShoulderLeft, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(95, 5, 25, JointType_Head, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(125, 5, 25, JointType_ShoulderRight, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(155, 5, 25, JointType_ElbowRight, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(185, 5, 25, JointType_HandRight, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(215, 5, 25, JointType_SpineBase, ofColor(241, 113, 97)));
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -412,6 +422,18 @@ void ofApp::drawDebug()
 }
 
 void ofApp::drawSequencer() {
+	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
+		int bodyId = trackedBodyIds[i];
+		TrackedBody* body = this->trackedBodies[bodyId];
+		for (auto ss : this->sequencerSteps) {
+			ss->registerBody(body, ofColor(241, 113, 97), ofColor(252, 36, 21));
+		}
+	}
+	for (auto ss : this->sequencerSteps) {
+		ss->update();
+		ss->draw();
+	}
+	/*
 	ofPushStyle();
 	ofSetColor(241, 113, 97);
 	ofNoFill();
@@ -462,6 +484,7 @@ void ofApp::drawSequencer() {
 
 	}
 	ofPopStyle();
+	*/
 }
 
 void ofApp::drawAlternate() {
