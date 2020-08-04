@@ -4,16 +4,18 @@ SequencerStep::SequencerStep()
 {
 	this->x = this->y = this->size = this->clipSize = 0;
 	this->strokeColor = ofColor(0, 0, 0, 0);
+	this->highlightColor = ofColor(0, 0, 0, 0);
 	this->bodies.clear();
 }
 
-SequencerStep::SequencerStep(float x, float y, float size, JointType joint, ofColor strokeColor)
+SequencerStep::SequencerStep(float x, float y, float size, JointType joint, ofColor strokeColor, ofColor highlightColor)
 {
 	this->x = x;
 	this->y = y;
 	this->size = size;
 	this->joint = joint;
 	this->strokeColor = strokeColor;
+	this->highlightColor = highlightColor;
 
 	// Eventually this will become specific for each joint
 	this->clipSize = 50.0;
@@ -79,19 +81,17 @@ void SequencerStep::draw(bool isHighlighted)
 			this->paths[i].setFilled(true);
 			this->paths[i].draw();
 		}
-		//ofPath p = ofPath(this->paths[i]);
-		//p.setMode(ofPath::POLYLINES);
 		if (this->bodies[i].strokeColor.a != 0) {
-			this->paths[i].setStrokeColor(this->bodies[i].strokeColor);
+			this->paths[i].setStrokeColor(isHighlighted ? this->highlightColor : this->bodies[i].strokeColor);
 			this->paths[i].setStrokeWidth(1);
-			this->paths[i].setColor(this->bodies[i].strokeColor);
+			this->paths[i].setColor(isHighlighted ? this->highlightColor : this->bodies[i].strokeColor);
 			this->paths[i].setFilled(false);
 			this->paths[i].draw();
 		}
 	}
 
 	// Draw container on top
-	ofSetColor(this->strokeColor);
+	ofSetColor(isHighlighted ? this->highlightColor : this->strokeColor);
 	ofNoFill();
 	ofDrawRectangle(0, 0, this->size, this->size);
 

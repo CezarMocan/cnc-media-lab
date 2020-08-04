@@ -106,14 +106,14 @@ void ofApp::setup() {
 	this->networkManager = NULL;
 
 	// Sequencer UI
-	this->sequencerSteps.push_back(new SequencerStep(5, 5, 25, JointType_HandLeft, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(35, 5, 25, JointType_ElbowLeft, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(65, 5, 25, JointType_ShoulderLeft, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(95, 5, 25, JointType_Head, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(125, 5, 25, JointType_ShoulderRight, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(155, 5, 25, JointType_ElbowRight, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(185, 5, 25, JointType_HandRight, ofColor(241, 113, 97)));
-	this->sequencerSteps.push_back(new SequencerStep(215, 5, 25, JointType_SpineBase, ofColor(241, 113, 97)));
+	this->sequencerSteps.push_back(new SequencerStep(5, 5, 25, JointType_HandLeft, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(35, 5, 25, JointType_ElbowLeft, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(65, 5, 25, JointType_ShoulderLeft, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(95, 5, 25, JointType_Head, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(125, 5, 25, JointType_ShoulderRight, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(155, 5, 25, JointType_ElbowRight, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(185, 5, 25, JointType_HandRight, ofColor(241, 113, 97), ofColor(249, 206, 42)));
+	this->sequencerSteps.push_back(new SequencerStep(215, 5, 25, JointType_SpineBase, ofColor(241, 113, 97), ofColor(249, 206, 42)));
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -429,9 +429,14 @@ void ofApp::drawSequencer() {
 			ss->registerBody(body, ofColor(241, 113, 97), ofColor(252, 36, 21));
 		}
 	}
+	int index = 0;
 	for (auto ss : this->sequencerSteps) {
 		ss->update();
-		ss->draw();
+
+		float stepSize = 200.0 / (1.0 * this->sequencerSteps.size());
+		bool isHighlighted = ((int)floor(1.0 * (ofGetFrameNum() % 200) / stepSize)) == index;
+		ss->draw(isHighlighted);
+		index++;
 	}
 	/*
 	ofPushStyle();

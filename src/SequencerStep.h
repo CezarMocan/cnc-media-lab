@@ -29,7 +29,7 @@ public:
 class SequencerStep {
 public:
 	SequencerStep();
-	SequencerStep(float x, float y, float size, JointType joint, ofColor strokeColor);
+	SequencerStep(float x, float y, float size, JointType joint, ofColor strokeColor, ofColor highlightColor);
 	void registerBody(TrackedBody* body, ofColor strokeColor, ofColor fillColor);
 	void update();
 	void draw(bool isHighlighted = false);
@@ -38,6 +38,7 @@ private:
 	float clipSize;
 	JointType joint;
 	ofColor strokeColor;
+	ofColor highlightColor;
 	vector<BodyCapture> bodies;
 	ofPath currentPath;
 	vector<ofPath> paths;
