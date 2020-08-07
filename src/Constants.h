@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "ofMain.h"
 #include "ofxKinectForWindows2.h"
 #include "MidiNote.h"
 
@@ -10,6 +11,15 @@
 using namespace std;
 
 #define USE_PROGRAMMABLE_PIPELINE 1
+//ofColor(241, 113, 97), ofColor(252, 36, 21)
+
+namespace Colors {
+	const ofColor RED = ofColor(241, 113, 97);
+	const ofColor RED_ACCENT = ofColor(252, 36, 21);
+	const ofColor BLUE = ofColor(31, 126, 240);
+	const ofColor BLUE_ACCENT = ofColor(0, 105, 205);
+	const ofColor YELLOW = ofColor(249, 206, 42);
+};
 
 namespace Midi {
 	const map<string, int> noteToId = {
@@ -109,6 +119,7 @@ namespace Constants {
 
 	const string OSC_HOST = "127.0.0.1";
 	const int OSC_PORT = 12345;
+	const int OSC_RECEIVE_PORT = 12344;
 
 	const string SKELETON_DELIMITER = "__SKELETON__";
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
@@ -117,11 +128,13 @@ namespace Constants {
 }
 
 namespace OscCategories {
+	const string SEQUENCER_STEP = "sequencer_step";
 	const string REMOTE_BODY_DATA = "remote_body_data";
 
 	const string BODY_SEQUENCE = "body_sequence";
 	const string BODY_SEQUENCE_RAW = "raw_body_sequence";
 	const string BODY_IS_RECORDING = "body_is_recording";
+	const string BODY_INTERSECTION = "body_intersection";
 
 	const string BODY = "body";	
 	const string ENVIRONMENT = "env";

@@ -16,7 +16,7 @@ SequencerStep::SequencerStep(float x, float y, float size, JointType joint, ofCo
 	this->joint = joint;
 	this->strokeColor = strokeColor;
 	this->highlightColor = highlightColor;
-
+	this->bodies.clear();
 	// Eventually this will become specific for each joint
 	this->clipSize = 50.0;
 }
@@ -41,16 +41,6 @@ void SequencerStep::update()
 
 		auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
 		glm::vec2 lineOffset = clipPosition - ofVec2f(clipSize / 2, clipSize / 2);
-
-		/*
-		for (auto& line : intersection) {
-			for (auto& point : line) {
-				point = point - lineOffset;
-				float scale = (1.0 * this->size) / (1.0 * this->clipSize);
-				point.x *= scale; point.y *= scale;
-			}
-		}
-		*/
 		
 		this->currentPath.clear();
 		for (auto& line : intersection) {
@@ -66,6 +56,12 @@ void SequencerStep::update()
 
 		this->paths.push_back(this->currentPath);
 	}
+}
+
+void SequencerStep::draw(float x, float y, bool isHighlighted) {
+	this->x = x;
+	this->y = y;
+	this->draw(isHighlighted);
 }
 
 void SequencerStep::draw(bool isHighlighted)

@@ -33,10 +33,11 @@ public:
 	void registerBody(TrackedBody* body, ofColor strokeColor, ofColor fillColor);
 	void update();
 	void draw(bool isHighlighted = false);
+	void draw(float x, float y, bool isHighlighted = false);
+	JointType joint;
 private:
 	float x, y, size;
-	float clipSize;
-	JointType joint;
+	float clipSize;	
 	ofColor strokeColor;
 	ofColor highlightColor;
 	vector<BodyCapture> bodies;

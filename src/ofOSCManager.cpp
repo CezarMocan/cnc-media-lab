@@ -1,10 +1,13 @@
 #include "ofOSCManager.h"
 
-ofOSCManager::ofOSCManager(string host, int port)
+ofOSCManager::ofOSCManager(string host, int port, int receivePort)
 {
 	this->oscHost = host;
 	this->oscPort = port;
+	this->oscReceivePort = receivePort;
 	this->updateOscSender();
+	this->updateOscReceiver();
+	this->sequencerStep = 0;
 	ofLogNotice() << "OSC Sender sending to: " << host << ":" << port;
 }
 
@@ -18,8 +21,39 @@ void ofOSCManager::setPort(int port) {
 	this->updateOscSender();
 }
 
+void ofOSCManager::setReceivePort(int receivePort)
+{
+	this->oscReceivePort = receivePort;
+	this->updateOscReceiver();
+}
+
 void ofOSCManager::updateOscSender() {
 	this->oscSender.setup(this->oscHost, this->oscPort);
+}
+
+void ofOSCManager::updateOscReceiver()
+{
+	this->oscReceiver.setup(this->oscReceivePort);
+}
+
+void ofOSCManager::update() {
+	// Check for incoming messages from the peer
+	while (oscReceiver.hasWaitingMessages()) {
+		ofxOscMessage m;
+		oscReceiver.getNextMessage(&m);
+
+		if (m.getAddress().compare("/" + OscCategories::SEQUENCER_STEP) == 0) {
+			this->sequencerStep = m.getArgAsInt(0);
+		}
+		else {
+			ofLogWarning() << "Unrecognized message coming from OSC peer!";
+		}
+	}
+}
+
+int ofOSCManager::getSequencerStep()
+{
+	return this->sequencerStep;
 }
 
 void ofOSCManager::sendStringMessageToAddress(string address, string message) {
@@ -79,6 +113,13 @@ void ofOSCManager::sendIsRecording(int bodyId, bool isRecording)
 	stringstream ss;
 	ss << "/" << bodyId << " " << (int)isRecording;
 	this->sendStringMessageToAddress(OscCategories::BODY_IS_RECORDING, ss.str());
+}
+
+void ofOSCManager::sendBodyIntersection(float area, int noPolys, float duration)
+{
+	stringstream ss;
+	ss << area << " " << noPolys << " " << duration;
+	this->sendStringMessageToAddress(OscCategories::BODY_INTERSECTION, ss.str());
 }
 
 void ofOSCManager::sendAllData()

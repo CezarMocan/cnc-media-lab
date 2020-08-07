@@ -12,7 +12,7 @@
 #include "BodySoundPlayer.h"
 #include "NetworkManager.h"
 #include "ofxClipper.h"
-#include "SequencerStep.h"
+#include "Sequencer.h"
 
 class ofApp : public ofBaseApp {
 
@@ -22,6 +22,7 @@ public:
 	void draw();
 	void drawDebug();
 	void drawSequencer();
+	void drawIntersection();
 	void drawAlternate();
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);
@@ -124,6 +125,11 @@ public:
 	NetworkManager* networkManager;
 
 	ofx::Clipper clipper;
-	vector<SequencerStep*> sequencerSteps;
-	vector<ofPolyline> sequencerShapes;
+
+	bool remoteIntersectionActive;
+	float remoteIntersectionStartTimestamp;
+	Sequencer* sequencerLeft;
+	Sequencer* sequencerRight;
+
+	
 };

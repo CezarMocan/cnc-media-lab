@@ -210,6 +210,7 @@
     <ClCompile Include="src\BodyUtils.cpp" />
     <ClCompile Include="src\ofOSCManager.cpp" />
     <ClCompile Include="src\ofxBlur.cpp" />
+    <ClCompile Include="src\Sequencer.cpp" />
     <ClCompile Include="src\SequencerStep.cpp" />
     <ClCompile Include="src\TrackedBody.cpp" />
     <ClCompile Include="src\TrackedBodyRecording.cpp" />
@@ -285,6 +286,7 @@
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\ofOSCManager.h" />
     <ClInclude Include="src\ofxBlur.h" />
+    <ClInclude Include="src\Sequencer.h" />
     <ClInclude Include="src\SequencerStep.h" />
     <ClInclude Include="src\TrackedBody.h" />
     <ClInclude Include="src\TrackedBodyRecording.h" />
