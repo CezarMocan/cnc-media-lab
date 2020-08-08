@@ -21,6 +21,7 @@ private:
 	int x, y;
 	int elementsPerRow, elementSize, padding;
 	int highlightedStep;
+	JointType highlightedJoint;
 	ofColor color, accentColor, highlightColor;
 	vector<JointType> stepOrder;
 	map<JointType, SequencerStep*> steps;

@@ -44,4 +44,6 @@ private:
 	ofPath currentPath;
 	vector<ofPath> paths;
 	ofx::Clipper clipper;
+	map<JointType, float> clipSizes;
+	void initializeClipSizes();
 };

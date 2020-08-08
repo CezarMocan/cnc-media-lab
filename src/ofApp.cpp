@@ -113,7 +113,10 @@ void ofApp::setup() {
 	this->sequencerLeft->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
-		JointType_HandRight, JointType_SpineBase
+		JointType_HandRight, JointType_SpineBase,
+		JointType_AnkleLeft, JointType_AnkleRight,
+		JointType_SpineMid,
+		JointType_KneeLeft, JointType_KneeRight,
 	});
 }
 
@@ -429,31 +432,17 @@ void ofApp::drawSequencer() {
 	}
 	else {
 		this->sequencerLeft->setTrackedBody(NULL);
-	}
+	}	
+	/*
 	this->sequencerLeft->setStepOrder({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
 		JointType_HandRight, JointType_SpineBase
 	});
+	*/
 	this->sequencerLeft->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
 	this->sequencerLeft->update();
 	this->sequencerLeft->draw();
-	/*
-	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-		int bodyId = trackedBodyIds[i];
-		TrackedBody* body = this->trackedBodies[bodyId];
-		for (auto ss : this->sequencerSteps) {
-			ss->registerBody(body, ofColor(241, 113, 97), ofColor(252, 36, 21));
-		}
-	}
-	int index = 0;
-	for (auto ss : this->sequencerSteps) {
-		ss->update();		
-		bool isHighlighted = ((index + 1) == this->oscSoundManager->getSequencerStep());
-		ss->draw(isHighlighted);
-		index++;
-	}
-	*/
 }
 
 void ofApp::drawIntersection() {

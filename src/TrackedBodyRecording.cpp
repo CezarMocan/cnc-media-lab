@@ -90,10 +90,7 @@ void TrackedBodyRecording::update()
 		//this->texture = this->recordedTextures[this->playhead];
 				
 		this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
-		this->bodySoundPlayer->setAccentSpeed(this->getJointSpeed(JointType_WristRight));
-		this->bodySoundPlayer->setAccentSpeed2(this->getJointSpeed(JointType_WristLeft));
 		this->bodySoundPlayer->update();
-				
 	}
 }
 

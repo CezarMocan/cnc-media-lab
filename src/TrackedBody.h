@@ -52,10 +52,11 @@ public:
 	float getJointSpeed(JointType a);
 	float getJointNormalizedSpeed(JointType a);
 	ofVec2f getJointPosition(JointType a);
+	float getScreenRatio();
 
 	ofPolyline getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody);
 
-	vector<ofVec2f> getInterestPoints();
+	vector<pair<JointType, ofVec2f> > getInterestPoints();
 	
 	virtual void update();
 	void drawJointLine(JointType a, JointType b);
@@ -91,6 +92,10 @@ public:
 	ofImage texture;
 
 	int index;
+
+	static bool interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b);
+	vector<JointType> getCurrentlyPlayingJoints();
+	vector<JointType> getCurrentlyPlaying16Joints();
 
 protected:	
 	int instrumentId;

@@ -6,6 +6,7 @@ SequencerStep::SequencerStep()
 	this->strokeColor = ofColor(0, 0, 0, 0);
 	this->highlightColor = ofColor(0, 0, 0, 0);
 	this->bodies.clear();
+	this->initializeClipSizes();
 }
 
 SequencerStep::SequencerStep(float x, float y, float size, JointType joint, ofColor strokeColor, ofColor highlightColor)
@@ -18,11 +19,17 @@ SequencerStep::SequencerStep(float x, float y, float size, JointType joint, ofCo
 	this->highlightColor = highlightColor;
 	this->bodies.clear();
 	// Eventually this will become specific for each joint
-	this->clipSize = 50.0;
+	this->initializeClipSizes();
+	if (this->clipSizes.find(joint) != this->clipSizes.end())
+		this->clipSize = this->clipSizes[joint];
+	else
+		this->clipSize = 400;
 }
 
 void SequencerStep::registerBody(TrackedBody* body, ofColor strokeColor, ofColor fillColor)
 {
+	this->paths.clear();
+	this->bodies.clear();
 	BodyCapture b = BodyCapture(body, this->joint, strokeColor, fillColor);
 	this->bodies.push_back(b);
 }
@@ -36,11 +43,13 @@ void SequencerStep::update()
 		this->clipper.Clear();
 		this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
 		
-		ofRectangle rect = ofRectangle(clipPosition.x - clipSize / 2, clipPosition.y - clipSize / 2, clipSize, clipSize);
+		float normalizedClipSize = this->clipSize * body->getScreenRatio();
+
+		ofRectangle rect = ofRectangle(clipPosition.x - normalizedClipSize / 2, clipPosition.y - normalizedClipSize / 2, normalizedClipSize, normalizedClipSize);
 		this->clipper.addRectangle(rect, ClipperLib::ptClip);
 
 		auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
-		glm::vec2 lineOffset = clipPosition - ofVec2f(clipSize / 2, clipSize / 2);
+		glm::vec2 lineOffset = clipPosition - ofVec2f(normalizedClipSize / 2, normalizedClipSize / 2);
 		
 		this->currentPath.clear();
 		for (auto& line : intersection) {
@@ -51,7 +60,7 @@ void SequencerStep::update()
 			this->currentPath.close();
 		}
 		this->currentPath.translate(-lineOffset);
-		float scale = (1.0 * this->size) / (1.0 * this->clipSize);
+		float scale = (1.0 * this->size) / (1.0 * normalizedClipSize);
 		this->currentPath.scale(scale, scale);
 
 		this->paths.push_back(this->currentPath);
@@ -62,6 +71,15 @@ void SequencerStep::draw(float x, float y, bool isHighlighted) {
 	this->x = x;
 	this->y = y;
 	this->draw(isHighlighted);
+}
+
+void SequencerStep::initializeClipSizes()
+{
+	this->clipSizes[JointType_Head] = 550.0;
+	this->clipSizes[JointType_SpineMid] = 900.0;
+	this->clipSizes[JointType_SpineBase] = 900.0;
+	this->clipSizes[JointType_ShoulderLeft] = 500.0;
+	this->clipSizes[JointType_ShoulderRight] = 500.0;
 }
 
 void SequencerStep::draw(bool isHighlighted)
@@ -94,8 +112,4 @@ void SequencerStep::draw(bool isHighlighted)
 
 	ofPopMatrix();
 	ofPopStyle();
-
-	// At the very end, clean everything up for next frame
-	this->bodies.clear();
-	this->paths.clear();
 }

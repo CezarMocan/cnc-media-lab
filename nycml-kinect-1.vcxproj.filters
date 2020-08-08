@@ -214,7 +214,9 @@
     <ClCompile Include="src\SequencerStep.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Sequencer.cpp" />
+    <ClCompile Include="src\Sequencer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -1604,14 +1606,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="icon.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="bin\data\shaders_gl3\bodySpeed.vert">
       <Filter>src\Shaders</Filter>
     </None>
     <None Include="bin\data\shaders_gl3\bodySpeed.frag">
       <Filter>src\Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="icon.rc">
+      <Filter>src</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

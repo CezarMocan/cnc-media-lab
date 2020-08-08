@@ -67,11 +67,16 @@ void Sequencer::setCurrentHighlight(int highlightedStep)
 
 void Sequencer::update()
 {
+	if (this->trackedBody == NULL) return;
+
+	this->setStepOrder(this->trackedBody->getCurrentlyPlayingJoints());
+	if (this->trackedBody->getCurrentlyPlaying16Joints().size() > this->highlightedStep)
+		this->highlightedJoint = this->trackedBody->getCurrentlyPlaying16Joints()[this->highlightedStep];
+
 	for (auto const &it : this->steps) {
 		JointType joint = it.first;
-		SequencerStep* step = it.second;
-		if (this->trackedBody != NULL)
-			step->registerBody(this->trackedBody, this->color, this->accentColor);
+		SequencerStep* step = it.second;	
+		step->registerBody(this->trackedBody, this->color, this->accentColor);
 		step->update();
 	}
 }
@@ -83,7 +88,7 @@ void Sequencer::draw()
 		JointType j = static_cast<JointType>(*it);
 		SequencerStep* step = this->steps[j];
 		ofVec2f position = this->getPositionForIndex(index);
-		bool isHighlighted = (index == this->highlightedStep);
+		bool isHighlighted = (j == this->highlightedJoint);
 		step->draw(position.x, position.y, isHighlighted);
 		index++;
 	}

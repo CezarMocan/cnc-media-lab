@@ -244,6 +244,12 @@ ofVec2f TrackedBody::getJointPosition(JointType a)
 	return this->joints[a]->getPosition();
 }
 
+float TrackedBody::getScreenRatio()
+{
+	float unit = this->getJointsDistance(JointType_ShoulderLeft, JointType_ShoulderRight);
+	return unit / (1.0 * DEPTH_WIDTH);
+}
+
 void TrackedBody::update()
 {
 	if (!this->isTracked) return;
@@ -253,8 +259,6 @@ void TrackedBody::update()
 	}
 
 	this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
-	this->bodySoundPlayer->setAccentSpeed(this->getJointSpeed(JointType_WristRight));
-	this->bodySoundPlayer->setAccentSpeed2(this->getJointSpeed(JointType_WristLeft));
 	this->bodySoundPlayer->update();
 
 }
@@ -403,9 +407,9 @@ ofPolyline TrackedBody::getVoronoiPolyline(int bodyInsideCells, bool forceCellsI
 	return resampled;
 }
 
-vector<ofVec2f> TrackedBody::getInterestPoints()
+vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 {
-	vector<ofVec2f> interestPoints;
+	vector<pair<JointType, ofVec2f> > interestPoints;
 
 	float leftRightDistance = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_WristRight);
 	float topBottomDistance = this->getNormalizedJointsDistance(JointType_Head, JointType_AnkleLeft);
@@ -420,8 +424,8 @@ vector<ofVec2f> TrackedBody::getInterestPoints()
 	}
 
 	if (leftRightDistance >= 0.325f) {
-		interestJoints.push_back(JointType_WristLeft);
-		interestJoints.push_back(JointType_WristRight);
+		interestJoints.push_back(JointType_HandLeft);
+		interestJoints.push_back(JointType_HandRight);
 	}
 
 	if (leftRightDistance >= 0.4f) {
@@ -443,33 +447,14 @@ vector<ofVec2f> TrackedBody::getInterestPoints()
 		interestJoints.push_back(JointType_KneeRight);
 	}
 
-	/*
-	vector<JointType> interestJoints = { 
-		JointType_Head,
-		//JointType_ShoulderLeft,
-		//JointType_ShoulderRight,
-		JointType_ElbowLeft,
-		JointType_ElbowRight,
-		JointType_WristLeft,
-		JointType_WristRight,
-		JointType_KneeLeft,
-		JointType_KneeRight,		
-		JointType_HandLeft,
-		JointType_HandRight,
-		JointType_Neck,
-		JointType_SpineMid,
-		JointType_SpineBase,
-		JointType_HipLeft,
-		JointType_HipRight,
-		JointType_FootLeft,
-		JointType_FootRight
-	};
-	*/
-
 	for (auto it = interestJoints.begin(); it != interestJoints.end(); ++it) {
-		if (this->joints.find(*it) != this->joints.end())
-			interestPoints.push_back(this->joints[*it]->getPosition());
+		if (this->joints.find(*it) != this->joints.end()) {
+			pair<JointType, ofVec2f> currentPoint = make_pair(*it, this->joints[*it]->getPosition());
+			interestPoints.push_back(currentPoint);
+		}
 	}
+
+	sort(interestPoints.begin(), interestPoints.end(), TrackedBody::interestPointComparator);
 	
 	return interestPoints;
 }
@@ -682,11 +667,11 @@ void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
 void TrackedBody::sendOSCData()
 {
 	float value;
-	float normalizedValue;
-	if (ofGetFrameNum() % 2 != 0) return;
+	float normalizedValue;	
 	// Sequencer sound data
 	this->bodySoundPlayer->sendOSC(this->instrumentId);
 
+	if (ofGetFrameNum() % 2 != 0) return;
 	// Send whether is recording
 	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 
@@ -788,4 +773,19 @@ void TrackedBody::sendOSCData()
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-shoulder", normalizedValue);
 
+}
+
+bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
+{
+	return (a.second.x <= b.second.x);
+}
+
+vector<JointType> TrackedBody::getCurrentlyPlayingJoints()
+{
+	return this->bodySoundPlayer->getCurrentlyPlayingJoints();
+}
+
+vector<JointType> TrackedBody::getCurrentlyPlaying16Joints()
+{
+	return this->bodySoundPlayer->getCurrentlyPlaying16Joints();
 }

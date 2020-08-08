@@ -9,6 +9,9 @@ BodySoundPlayer::BodySoundPlayer(int index, int canvasWidth, int canvasHeight, v
 	this->oscManager = oscManager;
 	this->startTime = ofGetElapsedTimeMillis();
 	this->playing = false;
+	this->previousSequencerStep = -1;
+	this->currentlyPlayingJoints.clear();
+	this->currentlyPlaying16Joints.clear();
 }
 
 void BodySoundPlayer::setOscManager(ofOSCManager* oscManager)
@@ -16,108 +19,54 @@ void BodySoundPlayer::setOscManager(ofOSCManager* oscManager)
 	this->oscManager = oscManager;
 }
 
-void BodySoundPlayer::setInterestPoints(vector<ofVec2f> points)
+void BodySoundPlayer::setInterestPoints(vector<pair<JointType, ofVec2f> > points)
 {
 	this->interestPoints = points;
-}
-
-void BodySoundPlayer::setAccentSpeed(float s)
-{
-	this->accentSpeed = s;
-}
-
-void BodySoundPlayer::setAccentSpeed2(float s)
-{
-	this->accentSpeed2 = s;
 }
 
 void BodySoundPlayer::update()
 {
 	if (!this->playing) return;
 	if (this->interestPoints.size() == 0) return;
-
-	this->currentTime = ofGetElapsedTimeMillis();
-
-	float currentDuration = this->getDurationForIndex(this->currentNoteIndex);
-
-	if (this->currentTime - this->accentStartTime > 500 && this->accentSpeed > 1.5) {
-		this->playAccentNote();
-	}
-
-	if (this->currentTime - this->accentStartTime2 > 2000 && this->accentSpeed2 > 1.5) {
-		this->playAccentNote2();
-	}
-
-	if (this->currentTime - this->currentNoteStartTime > currentDuration) {
-		this->playNextNote();
-	} else {
-
-	}	
-}
-
-bool BodySoundPlayer::timeBasedComparator(ofVec2f a, ofVec2f b) {
-	if (a.x <= b.x) return true;
-	return false;
-}
-
-void BodySoundPlayer::playNextNote() {
-	if (this->interestPoints.size() == 0) return;
-	this->currentNoteIndex = (this->currentNoteIndex + 1) % this->interestPoints.size();
-
-	vector<ofVec2f> iP = this->interestPoints;
-	sort(iP.begin(), iP.end(), BodySoundPlayer::timeBasedComparator);
-	this->currentlyPlayingInterestPoints = iP;
-
-	this->currentNoteStartTime = ofGetElapsedTimeMillis();
-
-	MidiNote* note = this->pointToMidi(this->interestPoints[this->currentNoteIndex]);
-	float currentDuration = this->getDurationForIndex(this->currentNoteIndex);
-
-//	MidiPlayer::playNote(note->note, note->octave, currentDuration);
-}
-
-void BodySoundPlayer::playAccentNote() {
-	if (this->interestPoints.size() == 0) return;
-
-	this->accentStartTime = this->currentTime;
-	int accentIndex = (int)floor(ofRandom(this->scale.size() - 1));
-	MidiNote* accent = this->scale[accentIndex];
-
-	//MidiNote* note = this->pointToMidi(this->interestPoints[3]);
-
-	//MidiPlayer::playNoteWithInstrument(accent->note, 3 + (int)floor(ofRandom(2)), Instruments::VIOLIN, 500);
-}
-
-void BodySoundPlayer::playAccentNote2() {
-	if (this->interestPoints.size() == 0) return;
-
-	this->accentStartTime2 = this->currentTime;
-	int accentIndex = (int)floor(ofRandom(this->scale.size() - 1));
-	MidiNote* accent = this->scale[accentIndex];
-
-	//MidiNote* note = this->pointToMidi(this->interestPoints[3]);
-
-	//MidiPlayer::playNoteWithInstrument(accent->note, 3 + (int)floor(ofRandom(2)), Instruments::SEASHORE, 2000);
 }
 
 void BodySoundPlayer::sendOSC(int instrumentId) {
-	this->sendMidiSequenceOsc(instrumentId);
+	int sequencerStep = this->oscManager->getSequencerStep();
+	// Only send joint data to Max on the last frame of the sequencer
+	if ((sequencerStep == 0 || sequencerStep == 16) && sequencerStep != this->previousSequencerStep) {
+		this->sendMidiSequenceOsc(instrumentId);
+	}
+	this->previousSequencerStep = sequencerStep;
+}
+
+vector<JointType> BodySoundPlayer::getCurrentlyPlayingJoints()
+{
+	return this->currentlyPlayingJoints;
+}
+
+vector<JointType> BodySoundPlayer::getCurrentlyPlaying16Joints()
+{
+	return this->currentlyPlaying16Joints;
 }
 
 void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 {
-	if (this->interestPoints.size() == 0) return;	
+	if (this->interestPoints.size() == 0) return;
+
+	JointType lastPlayingJoint = JointType_HandTipLeft;
+	if (this->currentlyPlayingJoints.size() != 0)
+		lastPlayingJoint = this->currentlyPlayingJoints[this->currentlyPlayingJoints.size() - 1];
+	this->currentlyPlayingJoints.clear();
+	this->currentlyPlaying16Joints.clear();
 
 	this->iP = this->interestPoints;
-	sort(this->iP.begin(), this->iP.end(), BodySoundPlayer::timeBasedComparator);
-	
-	this->currentlyPlayingInterestPoints = iP;
 
 	// Sequence of raw Y values, normalized to 1024
 	vector<int> jointSequenceRaw;
 	for (int i = 0; i < iP.size(); i++) {
-		const float y = ofMap(iP[i].y, 0, Constants::DEPTH_HEIGHT, 0, 1024);
+		const float y = ofMap(iP[i].second.y, 0, Constants::DEPTH_HEIGHT, 0, 1024);
 		jointSequenceRaw.push_back((int)floor(y));
+		currentlyPlayingJoints.push_back(this->iP[i].first);
 	}
 
 	// Sequence of MIDI messages, mapped on a pattern of 16
@@ -125,12 +74,18 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 	vector<int> pattern = MappingPatterns::to16[this->iP.size()][whichPattern];
 	vector<int> jointSequencePatternMidi;
 
+	JointType prevJoint = lastPlayingJoint;
 	for (int i = 0; i < pattern.size(); i++) {
-		if (pattern[i] == 0) jointSequencePatternMidi.push_back(0);
+		if (pattern[i] == 0) {
+			jointSequencePatternMidi.push_back(0);
+			this->currentlyPlaying16Joints.push_back(prevJoint);
+		}
 		else {
 			int index = pattern[i] - 1;
-			MidiNote* note = this->pointToMidi(this->iP[index]);
+			MidiNote* note = this->pointToMidi(this->iP[index].second);
 			jointSequencePatternMidi.push_back(note->getCode());
+			prevJoint = this->iP[index].first;
+			this->currentlyPlaying16Joints.push_back(prevJoint);
 		}
 	}	
 	
@@ -148,8 +103,8 @@ void BodySoundPlayer::draw()
 	//ofScale(2.0);
 	ofSetColor(200, 59, 25);
 	ofFill();
-	if (this->currentNoteIndex < this->currentlyPlayingInterestPoints.size())
-		ofDrawCircle(this->currentlyPlayingInterestPoints[this->currentNoteIndex], 5.);
+	if (this->currentNoteIndex < this->iP.size())
+		ofDrawCircle(this->iP[this->currentNoteIndex].second, 5.);
 	ofPopStyle();
 	ofPopMatrix();
 }
