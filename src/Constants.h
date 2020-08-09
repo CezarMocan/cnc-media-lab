@@ -135,6 +135,7 @@ namespace Constants {
 namespace OscCategories {
 	const string SEQUENCER_STEP = "sequencer_step";
 	const string REMOTE_BODY_DATA = "remote_body_data";
+	const string NEW_BODY = "new_body";
 
 	const string BODY_SEQUENCE = "body_sequence";
 	const string BODY_SEQUENCE_RAW = "raw_body_sequence";

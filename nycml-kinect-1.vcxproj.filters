@@ -1612,6 +1612,42 @@
     <None Include="bin\data\shaders_gl3\bodySpeed.frag">
       <Filter>src\Shaders</Filter>
     </None>
+    <None Include="bin\data\shaders_gl3\bodyRaster.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\bodyRaster.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\fill.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\fill.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\grid.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\grid.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\hlines.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\hlines.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\vlines.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\vlines.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\dots.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\dots.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="icon.rc">

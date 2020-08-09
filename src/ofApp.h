@@ -95,18 +95,30 @@ public:
 
 	ofParameter<bool> localBodyDrawsGeometry;
 	ofParameter<bool> localBodyDrawsJoints;
-	ofParameter<bool> localBodyDrawsFill;
 	ofParameter<bool> localBodyDrawsContour;
+	ofParameter<bool> localBodyDrawsFill;
+	ofParameter<bool> localBodyDrawsHLines;
+	ofParameter<bool> localBodyDrawsVLines;
+	ofParameter<bool> localBodyDrawsDots;
+	ofParameter<bool> localBodyDrawsGrid;	
 
 	ofParameter<bool> remoteBodyDrawsGeometry;
-	ofParameter<bool> remoteBodyDrawsJoints;
-	ofParameter<bool> remoteBodyDrawsFill;
+	ofParameter<bool> remoteBodyDrawsJoints;	
 	ofParameter<bool> remoteBodyDrawsContour;
+	ofParameter<bool> remoteBodyDrawsFill;
+	ofParameter<bool> remoteBodyDrawsHLines;
+	ofParameter<bool> remoteBodyDrawsVLines;
+	ofParameter<bool> remoteBodyDrawsDots;
+	ofParameter<bool> remoteBodyDrawsGrid;
 
 	ofParameter<bool> recordedBodyDrawsGeometry;
 	ofParameter<bool> recordedBodyDrawsJoints;
-	ofParameter<bool> recordedBodyDrawsFill;
 	ofParameter<bool> recordedBodyDrawsContour;
+	ofParameter<bool> recordedBodyDrawsFill;
+	ofParameter<bool> recordedBodyDrawsHLines;
+	ofParameter<bool> recordedBodyDrawsVLines;
+	ofParameter<bool> recordedBodyDrawsDots;
+	ofParameter<bool> recordedBodyDrawsGrid;
 
 
 	ofParameter<bool> useGaussian;

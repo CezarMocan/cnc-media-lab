@@ -122,6 +122,13 @@ void ofOSCManager::sendBodyIntersection(float area, int noPolys, float duration)
 	this->sendStringMessageToAddress(OscCategories::BODY_INTERSECTION, ss.str());
 }
 
+void ofOSCManager::sendNewBody(int bodyId)
+{
+	stringstream ss;
+	ss << bodyId;
+	this->sendStringMessageToAddress(OscCategories::NEW_BODY, ss.str());
+}
+
 void ofOSCManager::sendAllData()
 {
 	int time = ofGetSystemTimeMillis();

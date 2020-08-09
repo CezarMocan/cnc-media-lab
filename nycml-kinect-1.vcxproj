@@ -650,8 +650,20 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="bin\data\shaders_gl3\bodyRaster.frag" />
+    <None Include="bin\data\shaders_gl3\bodyRaster.vert" />
     <None Include="bin\data\shaders_gl3\bodySpeed.frag" />
     <None Include="bin\data\shaders_gl3\bodySpeed.vert" />
+    <None Include="bin\data\shaders_gl3\dots.frag" />
+    <None Include="bin\data\shaders_gl3\dots.vert" />
+    <None Include="bin\data\shaders_gl3\fill.frag" />
+    <None Include="bin\data\shaders_gl3\fill.vert" />
+    <None Include="bin\data\shaders_gl3\grid.frag" />
+    <None Include="bin\data\shaders_gl3\grid.vert" />
+    <None Include="bin\data\shaders_gl3\hlines.frag" />
+    <None Include="bin\data\shaders_gl3\hlines.vert" />
+    <None Include="bin\data\shaders_gl3\vlines.frag" />
+    <None Include="bin\data\shaders_gl3\vlines.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ProjectExtensions>

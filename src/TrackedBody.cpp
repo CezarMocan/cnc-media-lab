@@ -14,6 +14,12 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->contourPoints = contourPoints;
 	this->instrumentId = -1;	
 	this->speedShader.load("shaders_gl3/bodySpeed");
+	this->hlinesShader.load("shaders_gl3/hlines");
+	this->vlinesShader.load("shaders_gl3/vlines");
+	this->gridShader.load("shaders_gl3/grid");
+	this->fillShader.load("shaders_gl3/fill");
+	this->dotsShader.load("shaders_gl3/dots");
+
 	this->blurShader.setup(DEPTH_WIDTH, DEPTH_HEIGHT, 6, .2, 2);
 	this->mainFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	this->polyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
@@ -388,10 +394,12 @@ void TrackedBody::drawContours()
 	ofSetColor(this->generalColor);
 
 	this->contour.draw();
+	/*
 	for (int i = 0; i < this->delayedContours.size(); i++) {
 		ofSetColor(this->generalColor.r, this->generalColor.g, this->generalColor.b, ofMap(i, 0, this->delayedContours.size(), 255, 0));
 		this->delayedContours[i].draw();
 	}
+	*/
 	ofPopStyle();
 }
 
@@ -494,73 +502,79 @@ vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 	return interestPoints;
 }
 
-void TrackedBody::drawRaster()
-{
-	if (!this->isTracked) return;
-	if (this->contour.size() < 3) return;
-
-	ofPushMatrix();	
-		
-	this->polyFbo.begin();
-	ofClear(0, 0, 0, 1);
-	this->contourPath.clear();	
+void TrackedBody::drawContourForRaster(ofColor color) {
+	this->contourPath.clear();
 	this->contourPath.moveTo(this->contour[0]);
 	for (int i = 1; i < this->contour.size(); i++)
 		this->contourPath.lineTo(this->contour[i]);
 	this->contourPath.close();
 
 	this->contourPath.setFilled(true);
-	this->contourPath.setFillColor(ofColor(255, 128, 128));
+	this->contourPath.setFillColor(color);
 	this->contourPath.draw(0, 0);
-	this->polyFbo.end();
+}
 
+void TrackedBody::drawRaster()
+{
+	//this->drawWithShader(&this->fillShader);
+	this->drawContourForRaster(this->generalColor);
+}
 
-	this->mainFbo.begin();
-	ofClear(0, 0, 0, 3);
+void TrackedBody::drawHLines()
+{
+	this->drawWithShader(&this->hlinesShader);
+}
 
-	this->speedShader.begin();
-	this->setJointUniform(JointType_WristLeft, "vLeftWrist", this->speedShader);
-	this->setJointUniform(JointType_WristRight, "vRightWrist", this->speedShader);
-	this->setJointUniform(JointType_ShoulderLeft, "vLeftShoulder", this->speedShader);
-	this->setJointUniform(JointType_ShoulderRight, "vRightShoulder", this->speedShader);
-	this->setJointUniform(JointType_HipLeft, "vLeftHip", this->speedShader);
-	this->setJointUniform(JointType_HipRight, "vRightHip", this->speedShader);
-	this->setJointUniform(JointType_Head, "vHead", this->speedShader);
+void TrackedBody::drawVLines()
+{
+	this->drawWithShader(&this->vlinesShader);
+}
 
-	float time = ofGetSystemTimeMillis();
-	this->speedShader.setUniform1f("uTime", time);
+void TrackedBody::drawGrid()
+{
+	this->drawWithShader(&this->gridShader);
+}
 
-	float hueShift = ofClamp(this->index / 10.0, 0.05, 0.95);
-	this->speedShader.setUniform1f("uHueShiftParam", hueShift);
+void TrackedBody::drawDots()
+{
+	this->drawWithShader(&this->dotsShader);
+}
 
-	float rightArmAngle = this->getJointsAngle(JointType_HipRight, JointType_ShoulderRight, JointType_WristRight);
-	float leftArmAngle = this->getJointsAngle(JointType_WristLeft, JointType_ShoulderLeft, JointType_HipLeft);
-	this->speedShader.setUniform1f("uArmsParam", (leftArmAngle + rightArmAngle + 20) / (2.0 * 180));
-
-	this->polyFbo.draw(0, 0);
-
-	this->speedShader.end();
-	this->mainFbo.end();
-	ofPopMatrix();
+void TrackedBody::drawWithShader(ofShader* shader) {
+	if (!this->isTracked) return;
+	if (this->contour.size() < 3) return;
 
 	ofPushMatrix();
-	//ofScale(2.0);
-	this->blurShader.begin();
-	this->mainFbo.draw(0, 0);
-	this->blurShader.end();
-	this->blurShader.draw();	
 
-	ofPopMatrix();	
+	this->polyFbo.begin();
+	ofClear(0, 0, 0, 1);
+	this->drawContourForRaster(ofColor(255, 128, 128));
+	this->polyFbo.end();
+
+	float time = ofGetSystemTimeMillis();
+	glm::vec4 color = glm::vec4(this->generalColor.r, this->generalColor.g, this->generalColor.b, this->generalColor.a) / 255.0;
+
+	shader->begin();
+	shader->setUniform1f("uTime", time);
+	shader->setUniform4f("color", color);
+	this->polyFbo.draw(0, 0);
+	shader->end();
+
+	ofPopMatrix();
 }
 
 void TrackedBody::draw()
 {
 	this->updateDelayedContours();
 	if (this->drawMode & BDRAW_MODE_RASTER) this->drawRaster();
-	if (this->drawMode & BDRAW_MODE_JOINTS) this->drawJoints();
+	if (this->drawMode & BDRAW_MODE_HLINES) this->drawHLines();
+	if (this->drawMode & BDRAW_MODE_VLINES) this->drawVLines();
+	if (this->drawMode & BDRAW_MODE_GRID) this->drawGrid();
+	if (this->drawMode & BDRAW_MODE_DOTS) this->drawDots();
+	//if (this->drawMode & BDRAW_MODE_JOINTS) this->drawJoints();
 	if (this->drawMode & BDRAW_MODE_MOVEMENT) this->drawMovement();
 	if (this->drawMode & BDRAW_MODE_CONTOUR) this->drawContours();
-	if (this->drawMode & BDRAW_MODE_SOUND) this->drawSoundPlayer();
+	//if (this->drawMode & BDRAW_MODE_SOUND) this->drawSoundPlayer();
 }
 
 void TrackedBody::assignInstrument()

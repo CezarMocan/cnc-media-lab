@@ -22,7 +22,11 @@ enum BodyDrawMode {
 	BDRAW_MODE_JOINTS = 0b0000000010,
 	BDRAW_MODE_CONTOUR = 0b0000000100,
 	BDRAW_MODE_RASTER = 0b0000001000,
-	BDRAW_MODE_SOUND = 0b0000010000
+	BDRAW_MODE_SOUND = 0b0000010000,
+	BDRAW_MODE_HLINES = 0b0000100000,
+	BDRAW_MODE_VLINES = 0b0001000000,
+	BDRAW_MODE_GRID = 0b0010000000,	
+	BDRAW_MODE_DOTS = 0b0100000000,	
 };
 
 class TrackedBody {
@@ -69,6 +73,10 @@ public:
 	void drawContours();
 	void drawSoundPlayer();
 	void drawRaster();
+	void drawHLines();
+	void drawVLines();
+	void drawDots();
+	void drawGrid();	
 
 	virtual void draw();
 
@@ -126,11 +134,19 @@ protected:
 	ofFbo polyFbo;
 	ofxBlur blurShader;
 	ofShader speedShader;
+	ofShader vlinesShader;
+	ofShader hlinesShader;
+	ofShader gridShader;
+	ofShader fillShader;
+	ofShader dotsShader;
 
 	map<JointType, float> JOINT_WEIGHTS;
 
 	void updateJointPosition(JointType joint, ofVec2f position);
 	void setJointUniform(JointType joint, string uniformName, ofShader shader);	
+
+	void drawContourForRaster(ofColor color);
+	void drawWithShader(ofShader* shader);
 };
 
 #endif

@@ -67,19 +67,30 @@ void ofApp::setup() {
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
 	gui.add(localBodyDrawsContour.set("Local Body: Contour", true));
-	gui.add(localBodyDrawsGeometry.set("Local Body: Geometric", false));
-	gui.add(localBodyDrawsFill.set("Local Body: Fill", false));
 	gui.add(localBodyDrawsJoints.set("Local Body: Joints", false));
+	gui.add(localBodyDrawsFill.set("Local Body: Fill", false));
+	gui.add(localBodyDrawsHLines.set("Local Body: HLines", false));
+	gui.add(localBodyDrawsVLines.set("Local Body: VLines", false));
+	gui.add(localBodyDrawsDots.set("Local Body: Dots", false));
+	gui.add(localBodyDrawsGrid.set("Local Body: Grid", false));
 
 	gui.add(remoteBodyDrawsContour.set("Remote Body: Contour", true));
-	gui.add(remoteBodyDrawsGeometry.set("Remote Body: Geometric", false));
-	gui.add(remoteBodyDrawsFill.set("Remote Body: Fill", false));
 	gui.add(remoteBodyDrawsJoints.set("Remote Body: Joints", false));
+	gui.add(remoteBodyDrawsFill.set("Remote Body: Fill", false));
+	gui.add(remoteBodyDrawsHLines.set("Remote Body: HLines", false));
+	gui.add(remoteBodyDrawsVLines.set("Remote Body: VLines", false));
+	gui.add(remoteBodyDrawsDots.set("Remote Body: Dots", false));
+	gui.add(remoteBodyDrawsGrid.set("Remote Body: Grid", false));
+
 
 	gui.add(recordedBodyDrawsContour.set("Recorded Body: Contour", true));
-	gui.add(recordedBodyDrawsGeometry.set("Recorded Body: Geometric", false));
-	gui.add(recordedBodyDrawsFill.set("Recorded Body: Fill", false));
 	gui.add(recordedBodyDrawsJoints.set("Recorded Body: Joints", false));
+	gui.add(recordedBodyDrawsFill.set("Recorded Body: Fill", false));
+	gui.add(recordedBodyDrawsHLines.set("Recorded Body: HLines", false));
+	gui.add(recordedBodyDrawsVLines.set("Recorded Body: VLines", false));
+	gui.add(recordedBodyDrawsDots.set("Recorded Body: Dots", false));
+	gui.add(recordedBodyDrawsGrid.set("Recorded Body: Grid", false));
+
 
 	ofParameter<float> voronoiEnvironmentNoise;
 	voronoiGui.setup();
@@ -189,6 +200,7 @@ void ofApp::update() {
 				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2);
 				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
 				this->remoteBodies[bodyId]->setTracked(true);
+				this->oscSoundManager->sendNewBody(this->remoteBodies[bodyId]->getInstrumentId());
 			}
 			this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
 			this->remoteBodies[bodyId]->update();
@@ -213,9 +225,11 @@ void ofApp::detectBodySkeletons()
 			if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
 				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2);
 				this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
-			}
+				this->trackedBodies[body.bodyId]->setTracked(true);
 
-			this->trackedBodies[body.bodyId]->setTracked(body.tracked);
+				this->oscSoundManager->sendNewBody(this->trackedBodies[body.bodyId]->getInstrumentId());
+			}
+			
 			this->trackedBodies[body.bodyId]->updateSkeletonData(body.joints, coordinateMapper);
 			this->trackedBodies[body.bodyId]->setContourPoints(this->polygonFidelity);
 		}
@@ -426,13 +440,19 @@ void ofApp::drawRemoteBodies(int drawMode) {
 		if (body->getIsRecording()) {
 			remoteDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 				(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-				(recordedBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+				(recordedBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
+				(recordedBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
+				(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
+				(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 		}
 		else {
 			remoteDrawMode = (remoteBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 				(remoteBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-				(remoteBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+				(remoteBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
+				(remoteBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
+				(remoteBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
+				(remoteBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 				(remoteBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 		}
 		body->setDrawMode(remoteDrawMode);
@@ -614,22 +634,28 @@ void ofApp::drawAlternate() {
 	this->drawBackgrounds();
 	this->drawSequencer();
 
+	TrackedBody* leftBody = this->getLeftBody();
+	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
+	TrackedBody* rightBody = this->getRightBody();
+	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
+
 	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 		(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-		(recordedBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+		(recordedBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
+		(recordedBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
+		(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
+		(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 		(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 
 	this->drawTrackedBodyRecordings(recordedDrawMode);
 
 	int localDrawMode = (localBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
 		(localBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-		(localBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
+		(localBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
+		(localBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
+		(localBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
+		(localBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 		(localBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
-
-	TrackedBody* leftBody = this->getLeftBody(); 
-	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
-	TrackedBody* rightBody = this->getRightBody();
-	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
 
 	this->drawTrackedBodies(localDrawMode);
 
@@ -761,6 +787,7 @@ void ofApp::keyPressed(int key) {
 				TrackedBody* originalBody = this->trackedBodies[originalBodyId];
 				originalBody->assignInstrument();
 				rec->startPlayLoop();
+				this->oscSoundManager->sendNewBody(rec->getInstrumentId());
 			}
 		}
 		break;

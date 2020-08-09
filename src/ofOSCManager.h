@@ -26,6 +26,8 @@ public:
 
 	void sendBodyIntersection(float area, int noPolys, float duration);
 
+	void sendNewBody(int bodyId);
+
 	void sendAllData();
 	void sendHandDistanceData();
 
