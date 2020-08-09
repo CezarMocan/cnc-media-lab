@@ -101,15 +101,16 @@ void ofApp::setup() {
 
 	networkGui.setup();	
 
-	networkGui.add(peerIp.set("Peer IP", "10.147.20.54"));
+	networkGui.add(peerIp.set("Peer IP", Constants::CEZAR_IP));
 	networkGui.add(peerPort.set("Peer Port", "12346"));
 	networkGui.add(localPort.set("Local Port", "12347"));
+	networkGui.add(isLeft.set("Left Side", true));
 	networkGui.add(peerConnectButton.setup("Connect"));
 
 	this->networkManager = NULL;
 
 	// Sequencer UI
-	this->sequencerLeft = new Sequencer(5, 5, 8, 25, 5, Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
+	this->sequencerLeft = new Sequencer(5, 5, 8, 25, 5, Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
 	this->sequencerLeft->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
@@ -118,6 +119,16 @@ void ofApp::setup() {
 		JointType_SpineMid,
 		JointType_KneeLeft, JointType_KneeRight,
 	});
+
+	this->sequencerRight = new Sequencer(DEPTH_WIDTH / 2 + 15, 5, 8, 25, 5, Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
+	this->sequencerRight->addSequencerStepForJoints({
+		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
+		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
+		JointType_HandRight, JointType_SpineBase,
+		JointType_AnkleLeft, JointType_AnkleRight,
+		JointType_SpineMid,
+		JointType_KneeLeft, JointType_KneeRight,
+		});
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -305,6 +316,57 @@ void ofApp::detectBodyContours() {
 	}
 }
 
+TrackedBody* ofApp::getLocalBody()
+{
+	if (this->trackedBodyIds.size() > 0) {
+		int bodyId = trackedBodyIds[0];
+		return this->trackedBodies[bodyId];		
+	}
+	else {
+		return NULL;
+	}
+}
+
+TrackedBody* ofApp::getRemoteBody()
+{
+	TrackedBody* remoteBody = NULL;
+
+	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
+		if (!this->networkManager->isBodyActive(bodyId)) continue;
+		TrackedBody* body = this->remoteBodies[bodyId];
+		if (body->getIsRecording()) continue;
+		remoteBody = body;
+	}
+
+	return remoteBody;
+}
+
+TrackedBody* ofApp::getLeftBody()
+{
+	// Cy is on the left, Cezar is on the right
+	if (this->isLeft.get()) {
+	//if (this->peerIp.get().compare(Constants::CEZAR_IP)) {
+		// Means that we're on Cy's computer
+		return this->getLocalBody();
+	}
+	else {
+		return this->getRemoteBody();
+	}
+}
+
+TrackedBody* ofApp::getRightBody()
+{
+	// Cy is on the left, Cezar is on the right
+	//if (this->peerIp.get().compare(Constants::CEZAR_IP)) {
+		// Means that we're on Cy's computer
+	if (this->isLeft.get()) {
+		return this->getRemoteBody();
+	}
+	else {
+		return this->getLocalBody();
+	}
+}
+
 TrackedBodyRecording* ofApp::createBodyRecording(int recordingIndex, int bodyId, int instrumentId)
 {
 	TrackedBodyRecording* rec = new TrackedBodyRecording(recordingIndex, 0.75, 400, 2);
@@ -426,54 +488,27 @@ void ofApp::drawDebug()
 }
 
 void ofApp::drawSequencer() {
-	if (this->trackedBodyIds.size() > 0) {
-		int bodyId = trackedBodyIds[0];
-		this->sequencerLeft->setTrackedBody(this->trackedBodies[bodyId]);
-	}
-	else {
-		this->sequencerLeft->setTrackedBody(NULL);
-	}	
-	/*
-	this->sequencerLeft->setStepOrder({
-		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
-		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
-		JointType_HandRight, JointType_SpineBase
-	});
-	*/
+	this->sequencerLeft->setTrackedBody(this->getLeftBody());
+	this->sequencerRight->setTrackedBody(this->getRightBody());
+
 	this->sequencerLeft->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
 	this->sequencerLeft->update();
 	this->sequencerLeft->draw();
+
+	this->sequencerRight->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
+	this->sequencerRight->update();
+	this->sequencerRight->draw();
 }
 
 void ofApp::drawIntersection() {
-	if (this->trackedBodyIds.size() == 0) {
-		remoteIntersectionActive = false;
-		return;
-	}
-	TrackedBody* body = this->trackedBodies[this->trackedBodyIds[0]];
+	TrackedBody* body = this->getLocalBody();
+	TrackedBody* remoteMainBody = this->getRemoteBody();
 
-	TrackedBody* remoteMainBody;
-
-	/*
-	if (this->activeBodyRecordings.size() == 0) {
-		if (remoteIntersectionActive) this->oscSoundManager->sendBodyIntersection(0, 0, 0);
-		remoteIntersectionActive = false;
-		return;
-	}
-	remoteMainBody = this->activeBodyRecordings[0];
-	*/
-
-	if (this->remoteBodies.size() == 0) {
-		if (remoteIntersectionActive) this->oscSoundManager->sendBodyIntersection(0, 0, 0);
+	if (body == NULL || remoteMainBody == NULL) {
 		remoteIntersectionActive = false;
 		return;
 	}
 	
-	for (auto it = this->remoteBodies.begin(); it != this->remoteBodies.end(); ++it) {
-		if (it->second->getIsRecording()) continue;
-		remoteMainBody = it->second;
-	}
-
 	this->clipper.Clear();
 	this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);		
 	this->clipper.addPolyline(remoteMainBody->contour, ClipperLib::ptClip);
@@ -514,6 +549,53 @@ void ofApp::drawIntersection() {
 	this->oscSoundManager->sendBodyIntersection(normalizedArea, intersection.size(), duration);
 }
 
+void ofApp::drawBackgrounds()
+{
+	TrackedBody* leftBody = this->getLeftBody();
+	if (leftBody != NULL) {
+		int framesOnPosition = 2;
+		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
+		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
+		pair<ofPath, ofRectangle> ctr = leftBody->getContourSegment(pathStart, noPoints);
+		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
+		ofVec2f padding = ofVec2f(15, 15);
+		ctr.first.scale((DEPTH_WIDTH / 2 - 2 * padding.x) / ctr.second.width, ((DEPTH_HEIGHT - 2 * padding.y) / ctr.second.height));
+		ctr.first.translate(glm::vec2(DEPTH_WIDTH / 2 + padding.x, padding.y));
+		
+		ctr.first.setFilled(true);
+		ctr.first.setColor(Colors::BLUE_TRANSPARENT);
+		ctr.first.draw();
+
+		ctr.first.setFilled(false);
+		ctr.first.setColor(Colors::BLUE);
+		ctr.first.setStrokeColor(Colors::BLUE_TRANSPARENT);
+		ctr.first.setStrokeWidth(1.);
+		ctr.first.draw();
+	}
+	TrackedBody* rightBody = this->getRightBody();
+	if (rightBody != NULL) {
+		int framesOnPosition = 2;
+		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
+		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
+		pair<ofPath, ofRectangle> ctr = rightBody->getContourSegment(pathStart, noPoints);
+		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
+
+		ofVec2f padding = ofVec2f(15, 15);
+		ctr.first.scale((DEPTH_WIDTH / 2 - 2 * padding.x) / ctr.second.width, ((DEPTH_HEIGHT - 2 * padding.y) / ctr.second.height));
+		ctr.first.translate(glm::vec2(padding.x, padding.y));		
+
+		ctr.first.setFilled(true);
+		ctr.first.setColor(Colors::RED_TRANSPARENT);
+		ctr.first.draw();
+
+		ctr.first.setFilled(false);
+		ctr.first.setColor(Colors::BLUE);
+		ctr.first.setStrokeColor(Colors::RED_TRANSPARENT);
+		ctr.first.setStrokeWidth(1.);
+		ctr.first.draw();
+	}
+}
+
 void ofApp::drawAlternate() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
@@ -524,8 +606,12 @@ void ofApp::drawAlternate() {
 	ofPushStyle();
 	ofSetColor(25, 32, 28);
 	ofDrawRectangle(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT);
+
+	ofSetColor(Colors::YELLOW);
+	//ofDrawRectangle(DEPTH_WIDTH / 2 - 0.5, 0, 1, DEPTH_HEIGHT);
 	ofPopStyle();
 
+	this->drawBackgrounds();
 	this->drawSequencer();
 
 	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
@@ -539,6 +625,11 @@ void ofApp::drawAlternate() {
 		(localBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
 		(localBodyDrawsGeometry.get() ? BDRAW_MODE_JOINTS : 0) |
 		(localBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
+
+	TrackedBody* leftBody = this->getLeftBody(); 
+	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
+	TrackedBody* rightBody = this->getRightBody();
+	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
 
 	this->drawTrackedBodies(localDrawMode);
 

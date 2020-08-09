@@ -33,6 +33,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	};
 
 	this->isRecording = false;
+	this->generalColor = ofColor(255, 225, 128, 255);
 }
 
 void TrackedBody::setOSCManager(ofOSCManager* m)
@@ -250,6 +251,35 @@ float TrackedBody::getScreenRatio()
 	return unit / (1.0 * DEPTH_WIDTH);
 }
 
+pair<ofPath, ofRectangle> TrackedBody::getContourSegment(int start, int amount)
+{
+	//ofPolyline ctr = this->contour;
+	ofPolyline ctr = this->delayedContours[this->delayedContours.size() - 1];
+	ofPath segment;
+	int index = start % ctr.size();
+	int total = 0;
+	segment.moveTo(ctr[index]);
+
+	ofRectangle rect;
+	rect.x = rect.width = ctr[index].x;
+	rect.y = rect.height = ctr[index].y;
+
+	while (total < amount) {
+		index = (index + 1) % ctr.size();
+		total++;
+		segment.lineTo(ctr[index]);
+
+		rect.x = fmin(rect.x, ctr[index].x);
+		rect.y = fmin(rect.y, ctr[index].y);
+		rect.width = fmax(rect.width, ctr[index].x);
+		rect.height = fmax(rect.height, ctr[index].y);
+	}
+
+	rect.width -= rect.x;
+	rect.height -= rect.y;
+	return make_pair(segment, rect);
+}
+
 void TrackedBody::update()
 {
 	if (!this->isTracked) return;
@@ -328,6 +358,9 @@ void TrackedBody::drawMovement()
 void TrackedBody::drawJoints()
 {
 	if (!this->isTracked) return;
+
+	ofPushStyle();
+	ofSetColor(this->generalColor);
 	this->drawJointLine(JointType_WristLeft, JointType_WristRight);
 	this->drawJointLine(JointType_ElbowLeft, JointType_ElbowRight);
 	this->drawJointLine(JointType_HandLeft, JointType_HandRight);
@@ -344,6 +377,7 @@ void TrackedBody::drawJoints()
 	this->drawJointLine(JointType_WristLeft, JointType_KneeLeft);
 	this->drawJointLine(JointType_WristLeft, JointType_HipLeft);
 	this->drawJointLine(JointType_WristLeft, JointType_AnkleLeft);
+	ofPopStyle();
 }
 
 void TrackedBody::drawContours()
@@ -351,11 +385,11 @@ void TrackedBody::drawContours()
 	if (!this->isTracked) return;
 	if (this->contour.size() < 3) return;
 	ofPushStyle();
-	ofSetColor(255, 225, 128, 255);
+	ofSetColor(this->generalColor);
 
 	this->contour.draw();
 	for (int i = 0; i < this->delayedContours.size(); i++) {
-		ofSetColor(255, 225, 128, ofMap(i, 0, this->delayedContours.size(), 255, 0));
+		ofSetColor(this->generalColor.r, this->generalColor.g, this->generalColor.b, ofMap(i, 0, this->delayedContours.size(), 255, 0));
 		this->delayedContours[i].draw();
 	}
 	ofPopStyle();
@@ -419,18 +453,18 @@ vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 	interestJoints.push_back(JointType_Head);
 
 	if (leftRightDistance >= 0.2f) {
-		interestJoints.push_back(JointType_ShoulderLeft);
-		interestJoints.push_back(JointType_ShoulderRight);
-	}
-
-	if (leftRightDistance >= 0.325f) {
 		interestJoints.push_back(JointType_HandLeft);
 		interestJoints.push_back(JointType_HandRight);
 	}
 
-	if (leftRightDistance >= 0.4f) {
+	if (leftRightDistance >= 0.325f) {
 		interestJoints.push_back(JointType_ElbowLeft);
 		interestJoints.push_back(JointType_ElbowRight);
+	}
+
+	if (leftRightDistance >= 0.4f) {
+		interestJoints.push_back(JointType_ShoulderLeft);
+		interestJoints.push_back(JointType_ShoulderRight);
 	}
 
 	if (topBottomDistance >= 0.25f) {
@@ -439,12 +473,12 @@ vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 	}
 
 	if (topBottomDistance >= 0.375f) {
-		interestJoints.push_back(JointType_SpineMid);
+		interestJoints.push_back(JointType_KneeLeft);
+		interestJoints.push_back(JointType_KneeRight);
 	}
 
 	if (topBottomDistance >= 0.5f) {
-		interestJoints.push_back(JointType_KneeLeft);
-		interestJoints.push_back(JointType_KneeRight);
+		interestJoints.push_back(JointType_SpineMid);
 	}
 
 	for (auto it = interestJoints.begin(); it != interestJoints.end(); ++it) {
@@ -454,7 +488,8 @@ vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 		}
 	}
 
-	sort(interestPoints.begin(), interestPoints.end(), TrackedBody::interestPointComparator);
+	if (interestPoints.size() > 0)
+		sort(interestPoints.begin(), interestPoints.end(), TrackedBody::interestPointComparator);
 	
 	return interestPoints;
 }
@@ -777,7 +812,7 @@ void TrackedBody::sendOSCData()
 
 bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
 {
-	return (a.second.x <= b.second.x);
+	return (a.second.y <= b.second.y);
 }
 
 vector<JointType> TrackedBody::getCurrentlyPlayingJoints()
@@ -788,4 +823,9 @@ vector<JointType> TrackedBody::getCurrentlyPlayingJoints()
 vector<JointType> TrackedBody::getCurrentlyPlaying16Joints()
 {
 	return this->bodySoundPlayer->getCurrentlyPlaying16Joints();
+}
+
+void TrackedBody::setGeneralColor(ofColor color)
+{
+	this->generalColor = color;
 }

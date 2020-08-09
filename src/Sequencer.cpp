@@ -84,12 +84,25 @@ void Sequencer::update()
 void Sequencer::draw()
 {
 	int index = 0;
-	for (auto it = this->stepOrder.begin(); it != this->stepOrder.end(); ++it) {
-		JointType j = static_cast<JointType>(*it);
-		SequencerStep* step = this->steps[j];
-		ofVec2f position = this->getPositionForIndex(index);
-		bool isHighlighted = (j == this->highlightedJoint);
-		step->draw(position.x, position.y, isHighlighted);
-		index++;
+	if (this->stepOrder.size() > 0) {
+		for (auto it = this->stepOrder.begin(); it != this->stepOrder.end(); ++it) {
+			JointType j = static_cast<JointType>(*it);
+			if (this->steps.find(j) == this->steps.end()) continue;
+			SequencerStep* step = this->steps[j];
+			ofVec2f position = this->getPositionForIndex(index);
+			bool isHighlighted = (j == this->highlightedJoint);
+			step->draw(position.x, position.y, isHighlighted);
+			index++;
+		}
+	}
+	else {
+		ofPushStyle();
+		for (int index = 0; index < 16; index++) {
+			ofVec2f position = this->getPositionForIndex(index);
+			ofNoFill();
+			ofSetColor(this->color);
+			ofDrawRectangle(position.x, position.y, this->elementSize, this->elementSize);
+		}
+		ofPopStyle();
 	}
 }

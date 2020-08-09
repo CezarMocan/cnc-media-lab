@@ -54,6 +54,8 @@ public:
 	ofVec2f getJointPosition(JointType a);
 	float getScreenRatio();
 
+	pair<ofPath, ofRectangle> getContourSegment(int start, int amount);
+
 	ofPolyline getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody);
 
 	vector<pair<JointType, ofVec2f> > getInterestPoints();
@@ -97,6 +99,8 @@ public:
 	vector<JointType> getCurrentlyPlayingJoints();
 	vector<JointType> getCurrentlyPlaying16Joints();
 
+	void setGeneralColor(ofColor color);
+
 protected:	
 	int instrumentId;
 	int drawMode;
@@ -106,6 +110,7 @@ protected:
 	bool isTracked;
 	int contourIndexOffset;
 	bool isRecording;
+	ofColor generalColor;
 	ofOSCManager* oscManager;	
 
 	BodySoundPlayer* bodySoundPlayer;

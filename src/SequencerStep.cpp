@@ -39,9 +39,18 @@ void SequencerStep::update()
 	for (auto& bc : this->bodies) {
 		TrackedBody* body = bc.body;
 		ofVec2f clipPosition = body->getJointPosition(bc.joint);
+		if (body->contour.size() < 3) continue;
 
-		this->clipper.Clear();
-		this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
+		try {
+			body->contour.close();
+			this->clipper.Clear();
+			this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
+		}
+		catch (const std::exception& e) {
+			this->currentPath.clear();
+			this->paths.push_back(this->currentPath);
+			return;
+		}
 		
 		float normalizedClipSize = this->clipSize * body->getScreenRatio();
 
@@ -75,9 +84,9 @@ void SequencerStep::draw(float x, float y, bool isHighlighted) {
 
 void SequencerStep::initializeClipSizes()
 {
-	this->clipSizes[JointType_Head] = 550.0;
-	this->clipSizes[JointType_SpineMid] = 900.0;
-	this->clipSizes[JointType_SpineBase] = 900.0;
+	this->clipSizes[JointType_Head] = 750.0;
+	this->clipSizes[JointType_SpineMid] = 1200.0;
+	this->clipSizes[JointType_SpineBase] = 1200.0;
 	this->clipSizes[JointType_ShoulderLeft] = 500.0;
 	this->clipSizes[JointType_ShoulderRight] = 500.0;
 }
@@ -91,14 +100,16 @@ void SequencerStep::draw(bool isHighlighted)
 	// Draw paths
 	for (int i = 0; i < this->paths.size(); i++) {
 		if (this->bodies[i].fillColor.a != 0) {
-			this->paths[i].setFillColor(this->bodies[i].fillColor);
+			//this->paths[i].setFillColor(this->bodies[i].fillColor);
+			this->paths[i].setFillColor(isHighlighted ? this->highlightColor : this->bodies[i].fillColor);
 			this->paths[i].setFilled(true);
 			this->paths[i].draw();
 		}
 		if (this->bodies[i].strokeColor.a != 0) {
-			this->paths[i].setStrokeColor(isHighlighted ? this->highlightColor : this->bodies[i].strokeColor);
+			this->paths[i].setStrokeColor(this->bodies[i].strokeColor);
 			this->paths[i].setStrokeWidth(1);
-			this->paths[i].setColor(isHighlighted ? this->highlightColor : this->bodies[i].strokeColor);
+			//this->paths[i].setColor(isHighlighted ? this->highlightColor : this->bodies[i].strokeColor);
+			this->paths[i].setColor(this->bodies[i].strokeColor);
 			this->paths[i].setFilled(false);
 			this->paths[i].draw();
 		}

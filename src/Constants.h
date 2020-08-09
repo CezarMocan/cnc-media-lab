@@ -15,8 +15,10 @@ using namespace std;
 
 namespace Colors {
 	const ofColor RED = ofColor(241, 113, 97);
+	const ofColor RED_TRANSPARENT = ofColor(241, 113, 97, 25);
 	const ofColor RED_ACCENT = ofColor(252, 36, 21);
 	const ofColor BLUE = ofColor(31, 126, 240);
+	const ofColor BLUE_TRANSPARENT = ofColor(31, 126, 240, 25);
 	const ofColor BLUE_ACCENT = ofColor(0, 105, 205);
 	const ofColor YELLOW = ofColor(249, 206, 42);
 };
@@ -125,6 +127,9 @@ namespace Constants {
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
 	const string IS_RECORDING_DELIMITER = "__IS_RECORDING__";
 	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;	
+
+	const string CEZAR_IP = "10.147.20.54";
+	const string CY_IP = "10.147.20.159";
 }
 
 namespace OscCategories {

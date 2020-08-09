@@ -65,7 +65,8 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 	vector<int> jointSequenceRaw;
 	for (int i = 0; i < iP.size(); i++) {
 		const float y = ofMap(iP[i].second.y, 0, Constants::DEPTH_HEIGHT, 0, 1024);
-		jointSequenceRaw.push_back((int)floor(y));
+		const float x = ofMap(iP[i].second.x, 0, Constants::DEPTH_WIDTH, 0, 1024);
+		jointSequenceRaw.push_back((int)floor(x));
 		currentlyPlayingJoints.push_back(this->iP[i].first);
 	}
 
@@ -139,8 +140,11 @@ MidiNote* BodySoundPlayer::pointToMidi(ofVec2f point)
 
 	int x = (int)point.x;
 	int y = (int)point.y;
-	float divisionSize = (1.0 * height) / (1.0 * this->scale.size());
+	
+	//float divisionSize = (1.0 * height) / (1.0 * this->scale.size());
+	float divisionSize = (1.0 * width) / (1.0 * this->scale.size());
 
-	int index = floor(1.0 * y / divisionSize);	
+	//int index = floor(1.0 * y / divisionSize);	
+	int index = floor(1.0 * x / divisionSize);	
 	return this->scale[index % this->scale.size()];	
 }

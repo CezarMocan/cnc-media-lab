@@ -23,14 +23,22 @@ public:
 	void drawDebug();
 	void drawSequencer();
 	void drawIntersection();
+	void drawBackgrounds();
 	void drawAlternate();
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);
 	void drawTrackedBodyRecordings(int drawMode);
-	void drawVoronoi();	
+	void drawVoronoi();		
 
 	void detectBodySkeletons();
 	void detectBodyContours();
+
+
+	TrackedBody* getLocalBody();
+	TrackedBody* getRemoteBody();
+	TrackedBody* getLeftBody();
+	TrackedBody* getRightBody();
+
 
 	TrackedBodyRecording* createBodyRecording(int recordingIndex, int bodyId, int instrumentId);
 	vector<TrackedBodyRecording*> activeBodyRecordings;
@@ -83,6 +91,8 @@ public:
 	ofParameter<int> radius;
 	ofParameter<int> polygonFidelity;
 	
+	ofParameter<bool> isLeft;
+
 	ofParameter<bool> localBodyDrawsGeometry;
 	ofParameter<bool> localBodyDrawsJoints;
 	ofParameter<bool> localBodyDrawsFill;
