@@ -99,6 +99,9 @@ void Sequencer::draw()
 		ofPushStyle();
 		for (int index = 0; index < 16; index++) {
 			ofVec2f position = this->getPositionForIndex(index);
+			ofFill();
+			ofSetColor(Colors::BACKGROUND);
+			ofDrawRectangle(position.x, position.y, this->elementSize, this->elementSize);
 			ofNoFill();
 			ofSetColor(this->color);
 			ofDrawRectangle(position.x, position.y, this->elementSize, this->elementSize);

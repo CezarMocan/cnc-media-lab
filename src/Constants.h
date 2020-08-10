@@ -17,10 +17,13 @@ namespace Colors {
 	const ofColor RED = ofColor(241, 113, 97);
 	const ofColor RED_TRANSPARENT = ofColor(241, 113, 97, 25);
 	const ofColor RED_ACCENT = ofColor(252, 36, 21);
+	const ofColor RED_ACCENT_TRANSPARENT = ofColor(252, 36, 21, 75);
 	const ofColor BLUE = ofColor(31, 126, 240);
 	const ofColor BLUE_TRANSPARENT = ofColor(31, 126, 240, 25);
 	const ofColor BLUE_ACCENT = ofColor(0, 105, 205);
+	const ofColor BLUE_ACCENT_TRANSPARENT = ofColor(0, 105, 205, 75);
 	const ofColor YELLOW = ofColor(249, 206, 42);
+	const ofColor BACKGROUND = ofColor(25, 32, 28);
 };
 
 namespace Midi {
@@ -130,6 +133,12 @@ namespace Constants {
 
 	const string CEZAR_IP = "10.147.20.54";
 	const string CY_IP = "10.147.20.159";
+
+	const float SHADOW_EXPECTED_FREQUENCY_SEC = 30;
+	const float SHADOW_REC_MAX_DURATION_SEC = 15;
+	const float SHADOW_REC_MIN_DURATION_SEC = 3;
+	const float SHADOW_PLAY_MIN_DURATION_SEC = 15;
+	const float SHADOW_PLAY_MAX_DURATION_SEC = 45;
 }
 
 namespace OscCategories {

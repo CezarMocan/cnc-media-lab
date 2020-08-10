@@ -566,6 +566,25 @@ void TrackedBody::drawWithShader(ofShader* shader) {
 void TrackedBody::draw()
 {
 	this->updateDelayedContours();
+
+	switch (this->instrumentId) {
+	case 0:
+		this->drawMode = BDRAW_MODE_CONTOUR;
+		break;
+	case 1:
+		this->drawMode = BDRAW_MODE_HLINES;
+		break;
+	case 2:
+		this->drawMode = BDRAW_MODE_RASTER;
+		break;
+	case 3:
+		this->drawMode = BDRAW_MODE_DOTS;
+		break;
+	default:
+		this->drawMode = BDRAW_MODE_VLINES;
+		break;
+	}
+
 	if (this->drawMode & BDRAW_MODE_RASTER) this->drawRaster();
 	if (this->drawMode & BDRAW_MODE_HLINES) this->drawHLines();
 	if (this->drawMode & BDRAW_MODE_VLINES) this->drawVLines();

@@ -97,6 +97,13 @@ void SequencerStep::draw(bool isHighlighted)
 	ofPushMatrix();
 	ofTranslate(this->x, this->y);
 
+	ofPushStyle();
+	ofSetColor(Colors::BACKGROUND);
+	ofFill();
+	ofSetColor(Colors::BACKGROUND);
+	ofDrawRectangle(0, 0, this->size, this->size);
+	ofPopStyle();
+
 	// Draw paths
 	for (int i = 0; i < this->paths.size(); i++) {
 		if (this->bodies[i].fillColor.a != 0) {

@@ -38,10 +38,10 @@ public:
 	TrackedBody* getRemoteBody();
 	TrackedBody* getLeftBody();
 	TrackedBody* getRightBody();
-
-
-	TrackedBodyRecording* createBodyRecording(int recordingIndex, int bodyId, int instrumentId);
-	vector<TrackedBodyRecording*> activeBodyRecordings;
+	int getLocalBodyIndex();
+	int getRemoteBodyIndex();
+	int getLeftBodyIndex();
+	int getRightBodyIndex();
 
 	bool isBorder(ofDefaultVec3 _pt);
 
@@ -67,7 +67,6 @@ public:
 
 	ofOSCManager* oscSoundManager;
 	map<int, TrackedBody*> trackedBodies;
-	map<int, TrackedBodyRecording*> trackedBodyRecordings;
 	map<int, TrackedBody*> remoteBodies;
 	vector<int> trackedBodyIds;
 
@@ -92,6 +91,8 @@ public:
 	ofParameter<int> polygonFidelity;
 	
 	ofParameter<bool> isLeft;
+
+	ofParameter<bool> automaticShadows;
 
 	ofParameter<bool> localBodyDrawsGeometry;
 	ofParameter<bool> localBodyDrawsJoints;
@@ -153,5 +154,11 @@ public:
 	Sequencer* sequencerLeft;
 	Sequencer* sequencerRight;
 
-	
+	void spawnBodyRecording();
+	void playBodyRecording(int index);
+	void clearBodyRecording(int index);
+	void manageBodyRecordings();
+
+	vector<TrackedBodyRecording*> activeBodyRecordings;
+	vector<pair<int, pair<float, float> > > activeBodyRecordingsParams;
 };

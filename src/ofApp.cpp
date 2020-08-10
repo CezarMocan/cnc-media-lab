@@ -13,7 +13,8 @@ using namespace Constants;
 //--------------------------------------------------------------
 void ofApp::setup() {
 	// Kinect setup
-	ofSetWindowShape(2 * DEPTH_WIDTH, 2 * DEPTH_HEIGHT);
+	int windowWidth = 2 * DEPTH_WIDTH;
+	ofSetWindowShape(windowWidth + 100, windowWidth * 3 / 4 + 50);
 
 	kinect.open();
 	kinect.initDepthSource();
@@ -66,6 +67,9 @@ void ofApp::setup() {
 	this->guiVisible = true;
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
+	gui.add(automaticShadows.set("Auto Shadows", true));
+
+	/*
 	gui.add(localBodyDrawsContour.set("Local Body: Contour", true));
 	gui.add(localBodyDrawsJoints.set("Local Body: Joints", false));
 	gui.add(localBodyDrawsFill.set("Local Body: Fill", false));
@@ -90,6 +94,7 @@ void ofApp::setup() {
 	gui.add(recordedBodyDrawsVLines.set("Recorded Body: VLines", false));
 	gui.add(recordedBodyDrawsDots.set("Recorded Body: Dots", false));
 	gui.add(recordedBodyDrawsGrid.set("Recorded Body: Grid", false));
+	*/
 
 
 	ofParameter<float> voronoiEnvironmentNoise;
@@ -121,7 +126,7 @@ void ofApp::setup() {
 	this->networkManager = NULL;
 
 	// Sequencer UI
-	this->sequencerLeft = new Sequencer(5, 5, 8, 25, 5, Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
+	this->sequencerLeft = new Sequencer(4, 4, 8, 20, 4, Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
 	this->sequencerLeft->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
@@ -131,7 +136,7 @@ void ofApp::setup() {
 		JointType_KneeLeft, JointType_KneeRight,
 	});
 
-	this->sequencerRight = new Sequencer(DEPTH_WIDTH / 2 + 15, 5, 8, 25, 5, Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
+	this->sequencerRight = new Sequencer(DEPTH_WIDTH / 2 + 74, 4, 8, 20, 4, Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
 	this->sequencerRight->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
@@ -207,7 +212,8 @@ void ofApp::update() {
 			this->remoteBodies[bodyId]->sendOSCData();
 		}
 	}
-	
+
+	this->manageBodyRecordings();	
 }
 
 void ofApp::detectBodySkeletons()
@@ -381,17 +387,110 @@ TrackedBody* ofApp::getRightBody()
 	}
 }
 
-TrackedBodyRecording* ofApp::createBodyRecording(int recordingIndex, int bodyId, int instrumentId)
+int ofApp::getLocalBodyIndex()
 {
+	TrackedBody* body = this->getLocalBody();
+	return (body == NULL ? -1 : body->index);
+}
+
+int ofApp::getRemoteBodyIndex()
+{
+	TrackedBody* body = this->getRemoteBody();
+	return (body == NULL ? -1 : body->index);
+}
+
+int ofApp::getLeftBodyIndex()
+{
+	TrackedBody* body = this->getLeftBody();
+	return (body == NULL ? -1 : body->index);
+}
+
+int ofApp::getRightBodyIndex()
+{
+	TrackedBody* body = this->getRightBody();
+	return (body == NULL ? -1 : body->index);
+}
+
+void ofApp::clearBodyRecording(int index)
+{
+	if (index >= this->activeBodyRecordings.size()) return;
+
+	this->activeBodyRecordings[index]->removeInstrument();
+	this->activeBodyRecordings.erase(this->activeBodyRecordings.begin() + index);
+	this->activeBodyRecordingsParams.erase(this->activeBodyRecordingsParams.begin() + index);
+}
+
+void ofApp::spawnBodyRecording()
+{
+	TrackedBody* originalBody = this->getLocalBody();
+	if (originalBody == NULL) return;
+	const int instrumentId = originalBody->getInstrumentId();
+	const int bodyId = originalBody->index;
+	const int recordingIndex = Constants::BODY_RECORDINGS_ID_OFFSET + this->activeBodyRecordings.size();
+
 	TrackedBodyRecording* rec = new TrackedBodyRecording(recordingIndex, 0.75, 400, 2);
+
 	rec->setTrackedBodyIndex(bodyId);
 	rec->setOSCManager(this->oscSoundManager);
 	rec->setTracked(true);
 	rec->setIsRecording(true);
 	rec->assignInstrument(instrumentId);
-	this->activeBodyRecordings.push_back(rec);
 
-	return rec;
+	int spawnTime = ofGetSystemTimeMillis();
+	float recordingDuration = 1000 * ofRandom(Constants::SHADOW_REC_MIN_DURATION_SEC, Constants::SHADOW_REC_MAX_DURATION_SEC);
+	float playDuration = 1000 * ofRandom(Constants::SHADOW_PLAY_MIN_DURATION_SEC, Constants::SHADOW_PLAY_MAX_DURATION_SEC);
+
+	this->activeBodyRecordings.push_back(rec);
+	this->activeBodyRecordingsParams.push_back(make_pair(spawnTime, make_pair(recordingDuration, playDuration)));
+
+	rec->startRecording();
+}
+
+void ofApp::playBodyRecording(int index)
+{
+	if (index >= this->activeBodyRecordings.size()) return;
+
+	TrackedBodyRecording* rec = this->activeBodyRecordings[index];
+	if (rec->getIsPlaying()) return;
+
+	int originalBodyId = rec->getTrackedBodyIndex();
+	TrackedBody* originalBody = this->trackedBodies[originalBodyId];
+	originalBody->assignInstrument();
+	rec->startPlayLoop();
+	this->oscSoundManager->sendNewBody(rec->getInstrumentId());
+}
+
+void ofApp::manageBodyRecordings()
+{
+	if (!this->automaticShadows.get()) return;
+
+	// Spawn if random is good
+	int spawnRand = ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
+	if (spawnRand == 1) {
+		this->spawnBodyRecording();
+	}
+
+	vector<int> indicesToRemove;
+	// Manage existing ones
+	int currentTime = ofGetSystemTimeMillis();
+	for (int index = 0; index < this->activeBodyRecordings.size(); index++) {
+		TrackedBodyRecording* rec = this->activeBodyRecordings[index];
+		int spawnTime = this->activeBodyRecordingsParams[index].first;
+		float recordingDuration = this->activeBodyRecordingsParams[index].second.first;
+		float playDuration = this->activeBodyRecordingsParams[index].second.second;
+
+		if (currentTime - spawnTime >= recordingDuration && rec->getIsRecording()) {
+			this->playBodyRecording(index);
+		}
+
+		if (currentTime - spawnTime >= recordingDuration + playDuration) {
+			indicesToRemove.push_back(index);			
+		}
+	}
+
+	for (auto it = indicesToRemove.begin(); it != indicesToRemove.end(); ++it) {
+		this->clearBodyRecording(*it);
+	}
 }
 
 //--------------------------------------------------------------
@@ -445,6 +544,11 @@ void ofApp::drawRemoteBodies(int drawMode) {
 				(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
 				(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
+			if (this->getLeftBodyIndex() == this->getRemoteBodyIndex()) {
+				body->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
+			} else {
+				body->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
+			}
 		}
 		else {
 			remoteDrawMode = (remoteBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
@@ -463,6 +567,11 @@ void ofApp::drawRemoteBodies(int drawMode) {
 void ofApp::drawTrackedBodyRecordings(int drawMode) {
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 		TrackedBodyRecording* rec = *it;
+		if (rec->getTrackedBodyIndex() == this->getLeftBodyIndex()) {
+			rec->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
+		} else if (rec->getTrackedBodyIndex() == this->getRightBodyIndex()) {
+			rec->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
+		}
 		rec->setDrawMode(drawMode);
 		rec->draw();
 	}
@@ -557,7 +666,7 @@ void ofApp::drawIntersection() {
 		totalArea += line.getArea();
 	}
 
-	path.setFillColor(ofColor(128, 255, 24));
+	path.setFillColor(Colors::YELLOW);
 	path.setFilled(true);
 	path.draw();
 
@@ -572,15 +681,17 @@ void ofApp::drawIntersection() {
 void ofApp::drawBackgrounds()
 {
 	TrackedBody* leftBody = this->getLeftBody();
+	ofVec2f winSize = ofGetWindowSize() / 2.0;
+	ofVec2f padding = ofVec2f(25, 25);
+
 	if (leftBody != NULL) {
 		int framesOnPosition = 2;
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
 		pair<ofPath, ofRectangle> ctr = leftBody->getContourSegment(pathStart, noPoints);
-		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
-		ofVec2f padding = ofVec2f(15, 15);
-		ctr.first.scale((DEPTH_WIDTH / 2 - 2 * padding.x) / ctr.second.width, ((DEPTH_HEIGHT - 2 * padding.y) / ctr.second.height));
-		ctr.first.translate(glm::vec2(DEPTH_WIDTH / 2 + padding.x, padding.y));
+		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));		
+		ctr.first.scale((winSize.x / 2 - 2 * padding.x) / ctr.second.width, ((winSize.y - 2 * padding.y) / ctr.second.height));
+		ctr.first.translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
 		
 		ctr.first.setFilled(true);
 		ctr.first.setColor(Colors::BLUE_TRANSPARENT);
@@ -598,11 +709,10 @@ void ofApp::drawBackgrounds()
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
 		pair<ofPath, ofRectangle> ctr = rightBody->getContourSegment(pathStart, noPoints);
-		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
 
-		ofVec2f padding = ofVec2f(15, 15);
-		ctr.first.scale((DEPTH_WIDTH / 2 - 2 * padding.x) / ctr.second.width, ((DEPTH_HEIGHT - 2 * padding.y) / ctr.second.height));
-		ctr.first.translate(glm::vec2(padding.x, padding.y));		
+		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
+		ctr.first.scale((winSize.x / 2 - 2 * padding.x) / ctr.second.width, ((winSize.y - 2 * padding.y) / ctr.second.height));
+		ctr.first.translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));		
 
 		ctr.first.setFilled(true);
 		ctr.first.setColor(Colors::RED_TRANSPARENT);
@@ -620,19 +730,23 @@ void ofApp::drawAlternate() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
 
-	ofPushMatrix();
-	ofScale(2.0);
+	ofVec2f winSize = ofGetWindowSize();
 
 	ofPushStyle();
-	ofSetColor(25, 32, 28);
-	ofDrawRectangle(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT);
+	ofSetColor(Colors::BACKGROUND);
+	ofDrawRectangle(0, 0, winSize.x, winSize.y);
 
 	ofSetColor(Colors::YELLOW);
+	ofNoFill();
+	ofDrawRectangle(40, 40, winSize.x - 80, winSize.y - 80);
 	//ofDrawRectangle(DEPTH_WIDTH / 2 - 0.5, 0, 1, DEPTH_HEIGHT);
 	ofPopStyle();
 
-	this->drawBackgrounds();
-	this->drawSequencer();
+	ofPushMatrix();
+	ofTranslate(40, 40);
+	ofScale(2.0);
+
+	this->drawBackgrounds();	
 
 	TrackedBody* leftBody = this->getLeftBody();
 	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
@@ -662,6 +776,8 @@ void ofApp::drawAlternate() {
 	this->drawRemoteBodies(0);
 
 	this->drawIntersection();
+
+	this->drawSequencer();
 
 	ofPopMatrix();
 }
@@ -770,33 +886,15 @@ void ofApp::keyPressed(int key) {
 		this->guiVisible = !this->guiVisible;
 		break;
 	case 'a':
-		for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-			const int bodyId = this->trackedBodyIds[i];
-			TrackedBody* originalBody = this->trackedBodies[bodyId];
-			const int instrumentId = originalBody->getInstrumentId();
-
-			TrackedBodyRecording* body = this->createBodyRecording(Constants::BODY_RECORDINGS_ID_OFFSET + this->activeBodyRecordings.size(), bodyId, instrumentId);
-			body->startRecording();
-		}
+		this->spawnBodyRecording();
 		break;
 	case 's':
-		for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-			TrackedBodyRecording* rec = *it;
-			if (!rec->getIsPlaying()) {
-				int originalBodyId = rec->getTrackedBodyIndex();
-				TrackedBody* originalBody = this->trackedBodies[originalBodyId];
-				originalBody->assignInstrument();
-				rec->startPlayLoop();
-				this->oscSoundManager->sendNewBody(rec->getInstrumentId());
-			}
+		for (int index = 0; index < this->activeBodyRecordings.size(); index++) {
+			this->playBodyRecording(index);
 		}
 		break;
 	case 'd':
-		for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-			TrackedBodyRecording* rec = *it;
-			rec->removeInstrument();
-		}
-		this->activeBodyRecordings.clear();
+		this->clearBodyRecording(0);
 		break;
 	}
 }
