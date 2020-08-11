@@ -7,7 +7,7 @@ void TrackedBody::initialize() {
 	memset(TrackedBody::instruments, 0, Constants::MAX_INSTRUMENTS * sizeof(int));
 }
 
-TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, int noDelayedContours)
+TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, int noDelayedContours, bool isRemote)
 {	
 	this->index = index;
 	this->smoothingFactor = smoothingFactor;
@@ -25,6 +25,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->polyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 
 	this->noContours = noDelayedContours;
+	this->isRemote = isRemote;
 	this->isTracked = false;
 
 	this->setBodySoundPlayer(new BodySoundPlayer(index, DEPTH_WIDTH, DEPTH_HEIGHT, Scales::PENTATONIC));
@@ -56,9 +57,11 @@ void TrackedBody::setBodySoundPlayer(BodySoundPlayer* bsp)
 
 void TrackedBody::setTracked(bool isTracked)
 {
-	if (isTracked != this->isTracked) {
-		if (!isTracked) this->removeInstrument();
-		else this->assignInstrument();
+	if (!this->isRemote) {
+		if (isTracked != this->isTracked) {
+			if (!isTracked) this->removeInstrument();
+			else this->assignInstrument();
+		}
 	}
 
 	this->isTracked = isTracked;
@@ -664,6 +667,8 @@ string TrackedBody::serialize()
 	108, 112
 	__IS_RECORDING__ // Constants::IS_RECORDING_DELIMITER
 	0 // or 1
+	__INSTRUMENT_ID__ // Constants::INSTRUMENT_ID_DELIMITER
+	2
 	----
 	*/
 	stringstream ss;
@@ -689,6 +694,9 @@ string TrackedBody::serialize()
 
 	ss << Constants::IS_RECORDING_DELIMITER << "\n";
 	ss << (int)this->isRecording << "\n";
+
+	ss << Constants::INSTRUMENT_ID_DELIMITER << "\n";
+	ss << this->getInstrumentId();
 
 	return ss.str();
 }
@@ -730,6 +738,11 @@ void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
 	bool isRecording;
 	ss >> isRecording;
 	this->setIsRecording(isRecording);
+
+	ss >> delimiter;
+	int instrumentId;
+	ss >> instrumentId;
+	this->assignInstrument(instrumentId);
 }
 
 void TrackedBody::sendOSCData()

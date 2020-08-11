@@ -202,7 +202,7 @@ void ofApp::update() {
 			string bodyData = this->networkManager->getBodyData(bodyId);
 			if (bodyData.size() < 2) continue;
 			if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
-				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2);
+				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2, true);
 				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
 				this->remoteBodies[bodyId]->setTracked(true);
 				this->oscSoundManager->sendNewBody(this->remoteBodies[bodyId]->getInstrumentId());
@@ -213,7 +213,20 @@ void ofApp::update() {
 		}
 	}
 
-	this->manageBodyRecordings();	
+	this->manageBodyRecordings();
+	this->resolveInstrumentConflicts();
+}
+
+void ofApp::resolveInstrumentConflicts() {
+	// If left body and right body are on the same instrument, reassign instrument to left body
+	if (!this->isLeft.get()) return;
+	TrackedBody* rightBody = this->getRightBody();
+	TrackedBody* leftBody = this->getLeftBody();
+	if (leftBody == NULL || rightBody == NULL) return;
+
+	if (leftBody->getInstrumentId() == rightBody->getInstrumentId()) {
+		leftBody->assignInstrument();
+	}
 }
 
 void ofApp::detectBodySkeletons()
@@ -229,7 +242,7 @@ void ofApp::detectBodySkeletons()
 			this->trackedBodyIds.push_back(body.bodyId);
 
 			if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
-				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2);
+				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2, false);
 				this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
 				this->trackedBodies[body.bodyId]->setTracked(true);
 
@@ -466,7 +479,7 @@ void ofApp::manageBodyRecordings()
 
 	// Spawn if random is good
 	int spawnRand = ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
-	if (spawnRand == 1) {
+	if (spawnRand == 1 && this->activeBodyRecordings.size() < 2) {
 		this->spawnBodyRecording();
 	}
 
@@ -544,7 +557,7 @@ void ofApp::drawRemoteBodies(int drawMode) {
 				(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
 				(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
-			if (this->getLeftBodyIndex() == this->getRemoteBodyIndex()) {
+			if (this->getLeftBody() == this->getRemoteBody()) {
 				body->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
 			} else {
 				body->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
@@ -567,9 +580,9 @@ void ofApp::drawRemoteBodies(int drawMode) {
 void ofApp::drawTrackedBodyRecordings(int drawMode) {
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 		TrackedBodyRecording* rec = *it;
-		if (rec->getTrackedBodyIndex() == this->getLeftBodyIndex()) {
+		if (this->getLocalBody() == this->getLeftBody()) {
 			rec->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
-		} else if (rec->getTrackedBodyIndex() == this->getRightBodyIndex()) {
+		} else if (this->getLocalBody() == this->getRightBody()) {
 			rec->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
 		}
 		rec->setDrawMode(drawMode);
@@ -639,7 +652,11 @@ void ofApp::drawIntersection() {
 	}
 	
 	this->clipper.Clear();
-	this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);		
+
+	body->contour.close();
+	remoteMainBody->contour.close();
+
+	this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
 	this->clipper.addPolyline(remoteMainBody->contour, ClipperLib::ptClip);
 	auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
 		

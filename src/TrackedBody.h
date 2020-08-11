@@ -33,7 +33,7 @@ class TrackedBody {
 public:
 	static void initialize();
 
-	TrackedBody(int index, float smoothingFactor, int contourPoints = 150, int noDelayedContours = 20);
+	TrackedBody(int index, float smoothingFactor, int contourPoints = 150, int noDelayedContours = 20, bool isRemote = false);
 	void setOSCManager(ofOSCManager* m);
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
 	void setTracked(bool isTracked);
@@ -118,6 +118,7 @@ protected:
 	bool isTracked;
 	int contourIndexOffset;
 	bool isRecording;
+	bool isRemote;
 	ofColor generalColor;
 	ofOSCManager* oscManager;	
 

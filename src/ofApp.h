@@ -28,7 +28,8 @@ public:
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);
 	void drawTrackedBodyRecordings(int drawMode);
-	void drawVoronoi();		
+	void resolveInstrumentConflicts();
+	void drawVoronoi();
 
 	void detectBodySkeletons();
 	void detectBodyContours();

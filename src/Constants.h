@@ -129,6 +129,7 @@ namespace Constants {
 	const string SKELETON_DELIMITER = "__SKELETON__";
 	const string CONTOUR_DELIMITER = "__CONTOUR__";
 	const string IS_RECORDING_DELIMITER = "__IS_RECORDING__";
+	const string INSTRUMENT_ID_DELIMITER = "__INSTRUMENT_ID__";
 	const int NETWORK_TRAFFIC_MAX_LATENCY_MS = 750;	
 
 	const string CEZAR_IP = "10.147.20.54";
