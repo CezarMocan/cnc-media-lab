@@ -217,6 +217,9 @@
     <ClCompile Include="src\Sequencer.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\MainFboManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -1604,6 +1607,9 @@
     <ClInclude Include="src\Sequencer.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\MainFboManager.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\data\shaders_gl3\bodySpeed.vert">
@@ -1646,6 +1652,12 @@
       <Filter>src\Shaders</Filter>
     </None>
     <None Include="bin\data\shaders_gl3\dots.vert">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\grain.frag">
+      <Filter>src\Shaders</Filter>
+    </None>
+    <None Include="bin\data\shaders_gl3\grain.vert">
       <Filter>src\Shaders</Filter>
     </None>
   </ItemGroup>

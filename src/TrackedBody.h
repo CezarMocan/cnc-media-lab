@@ -9,6 +9,7 @@
 #include "ofOSCManager.h"
 #include "ofxVoronoi.h"
 #include "BodySoundPlayer.h"
+#include "MainFboManager.h"
 
 #ifndef TRACKED_BODY_H
 #define TRACKED_BODY_H
@@ -109,7 +110,7 @@ public:
 
 	void setGeneralColor(ofColor color);
 
-protected:	
+protected:
 	int instrumentId;
 	int drawMode;
 	float smoothingFactor;
@@ -120,7 +121,7 @@ protected:
 	bool isRecording;
 	bool isRemote;
 	ofColor generalColor;
-	ofOSCManager* oscManager;	
+	ofOSCManager* oscManager;
 
 	BodySoundPlayer* bodySoundPlayer;
 

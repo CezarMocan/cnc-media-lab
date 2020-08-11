@@ -203,6 +203,7 @@
     <ClCompile Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.cpp" />
     <ClCompile Include="src\BodySoundPlayer.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\MainFboManager.cpp" />
     <ClCompile Include="src\MidiNote.cpp" />
     <ClCompile Include="src\MidiPlayer.cpp" />
     <ClCompile Include="src\NetworkManager.cpp" />
@@ -278,6 +279,7 @@
     <ClInclude Include="..\..\..\addons\ofxVoronoi\libs\Voro++2D\worklist_2d.h" />
     <ClInclude Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.h" />
     <ClInclude Include="src\BodySoundPlayer.h" />
+    <ClInclude Include="src\MainFboManager.h" />
     <ClInclude Include="src\MidiNote.h" />
     <ClInclude Include="src\MidiPlayer.h" />
     <ClInclude Include="src\NetworkManager.h" />
@@ -658,6 +660,8 @@
     <None Include="bin\data\shaders_gl3\dots.vert" />
     <None Include="bin\data\shaders_gl3\fill.frag" />
     <None Include="bin\data\shaders_gl3\fill.vert" />
+    <None Include="bin\data\shaders_gl3\grain.frag" />
+    <None Include="bin\data\shaders_gl3\grain.vert" />
     <None Include="bin\data\shaders_gl3\grid.frag" />
     <None Include="bin\data\shaders_gl3\grid.vert" />
     <None Include="bin\data\shaders_gl3\hlines.frag" />

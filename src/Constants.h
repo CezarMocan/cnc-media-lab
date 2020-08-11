@@ -145,6 +145,7 @@ namespace Constants {
 
 namespace Layout {
 	const int WINDOW_PADDING = 40;
+	const float WINDOW_SCALE = 2.0;
 	const int FRAME_PADDING = 4;
 	const int SEQUENCER_ROW_SIZE = 8;
 	const int SEQUENCER_ELEMENT_SIZE = 22;

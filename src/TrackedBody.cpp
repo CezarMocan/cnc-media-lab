@@ -542,12 +542,12 @@ void TrackedBody::drawWithShader(ofShader* shader) {
 	if (!this->isTracked) return;
 	if (this->contour.size() < 3) return;
 
-	ofPushMatrix();
-
+	MainFboManager::end();
 	this->polyFbo.begin();
-	ofClear(0, 0, 0, 1);
+	ofClear(0, 0, 0, 255);
 	this->drawContourForRaster(ofColor(255, 128, 128));
 	this->polyFbo.end();
+	MainFboManager::begin();
 
 	float time = ofGetSystemTimeMillis();
 	glm::vec4 color = glm::vec4(this->generalColor.r, this->generalColor.g, this->generalColor.b, this->generalColor.a) / 255.0;
@@ -557,8 +557,6 @@ void TrackedBody::drawWithShader(ofShader* shader) {
 	shader->setUniform4f("color", color);
 	this->polyFbo.draw(0, 0);
 	shader->end();
-
-	ofPopMatrix();
 }
 
 void TrackedBody::draw()

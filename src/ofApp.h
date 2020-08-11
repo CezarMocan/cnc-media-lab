@@ -13,6 +13,7 @@
 #include "NetworkManager.h"
 #include "ofxClipper.h"
 #include "Sequencer.h"
+#include "MainFboManager.h"
 
 class ofApp : public ofBaseApp {
 
@@ -91,6 +92,9 @@ public:
 	ofPolyline voronoiRandomPoints;
 
 	ofShader bodyIndexShader;
+	ofShader grainShader;
+	ofFbo grainFbo;
+
 	ofFbo bodyFbo;
 	ofFbo bodyDebugFbo;
 	ofPixels bodyPixels;

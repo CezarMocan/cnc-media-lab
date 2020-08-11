@@ -43,6 +43,11 @@ void ofApp::setup() {
 	bodyDebugFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	bodyIndexShader.load("shaders_gl3/bodyIndex");
 
+	MainFboManager::initialize();
+	grainFbo.allocate(ofGetWindowWidth(), ofGetWindowHeight());
+	grainShader.load("shaders_gl3/grain");
+	MainFboManager::setMainFbo(&grainFbo);
+
 	// Load fonts
 	fontRegular.load("fonts/be-ag-light.ttf", Layout::FONT_SIZE);
 	fontBold.load("fonts/be-ag-medium.ttf", Layout::FONT_SIZE - 2);
@@ -68,7 +73,7 @@ void ofApp::setup() {
 	this->voronoiDrawCellCenters = false;
 	this->voronoiConnectCellCenters = false;	
 
-	this->guiVisible = true;
+	this->guiVisible = false;
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
 	gui.add(automaticShadows.set("Auto Shadows", true));
@@ -488,9 +493,12 @@ void ofApp::manageBodyRecordings()
 	if (!this->automaticShadows.get()) return;
 
 	// Spawn if random is good
-	int spawnRand = ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
-	if (spawnRand == 1 && this->activeBodyRecordings.size() < 2) {
-		this->spawnBodyRecording();
+	int spawnRand = (int) ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
+	if (spawnRand == 2 && this->activeBodyRecordings.size() < 2) {
+		bool isRecording = false;
+		if (this->activeBodyRecordings.size() == 1 && this->activeBodyRecordings[0]->getIsRecording())
+			isRecording = true;
+		if (!isRecording) this->spawnBodyRecording();
 	}
 
 	vector<int> indicesToRemove;
@@ -523,7 +531,15 @@ void ofApp::draw() {
 	else {
 		ofClear(0, 0, 0, 255);
 		//this->drawDebug();
+		grainFbo.begin();
+		ofClear(0, 0, 0, 255);
 		this->drawAlternate();
+		grainFbo.end();
+
+		grainShader.begin();
+		grainFbo.draw(0, 0);
+		grainShader.end();
+
 		// Draw GUI		
 		if (this->guiVisible) {
 			gui.draw();
@@ -867,7 +883,7 @@ void ofApp::drawAlternate() {
 
 	ofPushMatrix();
 	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
-	ofScale(2.0);
+	ofScale(Layout::WINDOW_SCALE);
 
 	this->drawBackgrounds();
 
