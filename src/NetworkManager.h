@@ -21,6 +21,9 @@ public:
 	string getBodyData(int index);
 	bool isBodyActive(int index);
 
+	bool isConnected();
+	string getLatency();
+
 private:
 	bool isThisServer;
 	string remoteIp;
@@ -31,6 +34,11 @@ private:
 
 	ofxOscSender oscSender;
 	ofxOscReceiver oscReceiver;
+
+	int latestTimestamp;
+	float smoothLatency;
+	float latency;
+	float displayLatency;
 };
 
 #endif // !NETWORK_MANAGER_H

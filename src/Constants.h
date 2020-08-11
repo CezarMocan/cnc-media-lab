@@ -104,6 +104,7 @@ namespace Instruments {
 	const string SHAKUHACHI = "shakuhachi";
 	const string VIOLIN = "violin";
 	const string SEASHORE = "electric_guitar_clean";
+	const vector<string> INSTRUMENT_LIST = { "Marimba", "Electric Guitar", "Accordion", "Reverse Cymbal", "", "", "", "", "", "" };
 }
 
 namespace Constants {
@@ -140,6 +141,14 @@ namespace Constants {
 	const float SHADOW_REC_MIN_DURATION_SEC = 3;
 	const float SHADOW_PLAY_MIN_DURATION_SEC = 15;
 	const float SHADOW_PLAY_MAX_DURATION_SEC = 45;
+}
+
+namespace Layout {
+	const int WINDOW_PADDING = 40;
+	const int FRAME_PADDING = 4;
+	const int SEQUENCER_ROW_SIZE = 8;
+	const int SEQUENCER_ELEMENT_SIZE = 22;
+	const int FONT_SIZE = 10;
 }
 
 namespace OscCategories {

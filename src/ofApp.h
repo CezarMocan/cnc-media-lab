@@ -32,11 +32,18 @@ public:
 	pair<ofPath*, ofRectangle> rightCtr;
 	void updateBackgrounds();
 	void drawBackgrounds();
-
-	void drawAlternate();
+	
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);
 	void drawTrackedBodyRecordings(int drawMode);
+
+	void drawSystemStatus();
+	void drawBodyTrackedStatus();
+	void drawFrequencyGradient();
+	void drawFrame();
+
+	void drawAlternate();
+
 	void resolveInstrumentConflicts();
 	void drawVoronoi();
 
@@ -171,4 +178,7 @@ public:
 
 	vector<TrackedBodyRecording*> activeBodyRecordings;
 	vector<pair<int, pair<float, float> > > activeBodyRecordingsParams;
+
+	ofTrueTypeFont fontRegular;
+	ofTrueTypeFont fontBold;
 };

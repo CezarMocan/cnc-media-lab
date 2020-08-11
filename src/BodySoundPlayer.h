@@ -16,6 +16,7 @@ public:
 	void sendOSC(int instrumentId);
 	vector<JointType> getCurrentlyPlayingJoints();
 	vector<JointType> getCurrentlyPlaying16Joints();
+	vector<float> getCurrentlyPlaying16Frequencies();
 	MidiNote* pointToMidi(ofVec2f point);
 
 	void start();
@@ -33,6 +34,7 @@ private:
 	vector<pair<JointType, ofVec2f> > iP;
 	vector<JointType> currentlyPlayingJoints;
 	vector<JointType> currentlyPlaying16Joints;
+	vector<float> currentlyPlaying16Frequencies;
 
 	int currentNoteIndex;
 	float currentNoteStartTime;

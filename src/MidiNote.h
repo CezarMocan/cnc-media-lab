@@ -11,6 +11,7 @@ public:
 	MidiNote(string note, int octave);
 	string getString();
 	int getCode();
+	float getFrequency();
 
 	static MidiNote* toMidiNote(string instrument, string note, int octave);
 

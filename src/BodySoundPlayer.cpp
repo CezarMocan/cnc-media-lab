@@ -12,6 +12,7 @@ BodySoundPlayer::BodySoundPlayer(int index, int canvasWidth, int canvasHeight, v
 	this->previousSequencerStep = -1;
 	this->currentlyPlayingJoints.clear();
 	this->currentlyPlaying16Joints.clear();
+	this->currentlyPlaying16Frequencies.clear();
 }
 
 void BodySoundPlayer::setOscManager(ofOSCManager* oscManager)
@@ -49,6 +50,11 @@ vector<JointType> BodySoundPlayer::getCurrentlyPlaying16Joints()
 	return this->currentlyPlaying16Joints;
 }
 
+vector<float> BodySoundPlayer::getCurrentlyPlaying16Frequencies()
+{
+	return this->currentlyPlaying16Frequencies;
+}
+
 void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 {
 	if (this->interestPoints.size() == 0) return;
@@ -58,6 +64,7 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 		lastPlayingJoint = this->currentlyPlayingJoints[this->currentlyPlayingJoints.size() - 1];
 	this->currentlyPlayingJoints.clear();
 	this->currentlyPlaying16Joints.clear();
+	this->currentlyPlaying16Frequencies.clear();
 
 	this->iP = this->interestPoints;
 
@@ -76,10 +83,12 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 	vector<int> jointSequencePatternMidi;
 
 	JointType prevJoint = lastPlayingJoint;
+	float prevFrequency = 0.0;
 	for (int i = 0; i < pattern.size(); i++) {
 		if (pattern[i] == 0) {
 			jointSequencePatternMidi.push_back(0);
 			this->currentlyPlaying16Joints.push_back(prevJoint);
+			this->currentlyPlaying16Frequencies.push_back(prevFrequency);
 		}
 		else {
 			int index = pattern[i] - 1;
@@ -87,6 +96,7 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 			jointSequencePatternMidi.push_back(note->getCode());
 			prevJoint = this->iP[index].first;
 			this->currentlyPlaying16Joints.push_back(prevJoint);
+			this->currentlyPlaying16Frequencies.push_back(note->getFrequency());
 		}
 	}	
 	

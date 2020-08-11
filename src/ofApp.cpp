@@ -14,7 +14,7 @@ using namespace Constants;
 void ofApp::setup() {
 	// Kinect setup
 	int windowWidth = 2 * DEPTH_WIDTH;
-	ofSetWindowShape(windowWidth + 100, windowWidth * 3 / 4 + 50);
+	ofSetWindowShape(windowWidth + 2 * Layout::WINDOW_PADDING, windowWidth * 3 / 4 + Layout::WINDOW_PADDING);
 
 	kinect.open();
 	kinect.initDepthSource();
@@ -42,6 +42,10 @@ void ofApp::setup() {
 	bodyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	bodyDebugFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	bodyIndexShader.load("shaders_gl3/bodyIndex");
+
+	// Load fonts
+	fontRegular.load("fonts/be-ag-light.ttf", Layout::FONT_SIZE);
+	fontBold.load("fonts/be-ag-medium.ttf", Layout::FONT_SIZE - 2);
 
 	// OSC setup
 	this->oscSoundManager = new ofOSCManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
@@ -126,7 +130,10 @@ void ofApp::setup() {
 	this->networkManager = NULL;
 
 	// Sequencer UI
-	this->sequencerLeft = new Sequencer(4, 4, 8, 20, 4, Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
+	this->sequencerLeft = new Sequencer(Layout::FRAME_PADDING, Layout::FRAME_PADDING, 
+		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
+		Layout::FRAME_PADDING, 
+		Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
 	this->sequencerLeft->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
@@ -136,7 +143,12 @@ void ofApp::setup() {
 		JointType_KneeLeft, JointType_KneeRight,
 	});
 
-	this->sequencerRight = new Sequencer(DEPTH_WIDTH / 2 + 74, 4, 8, 20, 4, Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
+	int srX = DEPTH_WIDTH - (Layout::FRAME_PADDING + Layout::SEQUENCER_ELEMENT_SIZE) * Layout::SEQUENCER_ROW_SIZE;
+	// DEPTH_WIDTH / 2 + 74
+	this->sequencerRight = new Sequencer(srX, Layout::FRAME_PADDING, 
+		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
+		Layout::FRAME_PADDING, 
+		Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
 	this->sequencerRight->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
@@ -319,6 +331,7 @@ void ofApp::detectBodyContours() {
 		//contourFinder.findContours(bodyImage);
 		contourFinder.setUseTargetColor(true);
 		contourFinder.setTargetColor(ofColor(bodyId));
+		contourFinder.setThreshold(0);
 		contourFinder.findContours(kinect.getBodyIndexSource()->getPixels());
 		
 		TrackedBody* currentBody = this->trackedBodies[bodyId];
@@ -350,7 +363,7 @@ TrackedBody* ofApp::getLocalBody()
 {
 	if (this->trackedBodyIds.size() > 0) {
 		int bodyId = trackedBodyIds[0];
-		return this->trackedBodies[bodyId];		
+		return this->trackedBodies[bodyId];
 	}
 	else {
 		return NULL;
@@ -704,6 +717,143 @@ void ofApp::drawBackgrounds()
 	}
 }
 
+void ofApp::drawSystemStatus() {
+	TrackedBody* leftBody = this->getLeftBody();
+	TrackedBody* rightBody = this->getRightBody();
+
+	bool isConnected = this->networkManager->isConnected();
+	float width, totalWidth;
+	ofPushStyle();
+	ofSetColor(Colors::YELLOW);
+
+	// Status	
+	width = fontBold.stringWidth("Status_ ");
+	fontBold.drawString("Status_ ", Layout::WINDOW_PADDING, Layout::WINDOW_PADDING - 7);
+	string status = isConnected ? "Connected" : "Not Connected";
+	fontRegular.drawString(status, Layout::WINDOW_PADDING + width, Layout::WINDOW_PADDING - 7);
+	
+	// IP 1
+	width = fontBold.stringWidth("IP_1_ ");
+	totalWidth = width + fontRegular.stringWidth(Constants::CEZAR_IP);
+	fontBold.drawString("IP_1_ ", (ofGetWindowWidth() - totalWidth) / 2, Layout::WINDOW_PADDING - 7);	
+	fontRegular.drawString(Constants::CEZAR_IP, (ofGetWindowWidth() - totalWidth) / 2 + width, Layout::WINDOW_PADDING - 7);
+
+	// IP 2
+	width = fontBold.stringWidth("IP_2_ ");
+	totalWidth = width + fontRegular.stringWidth(Constants::CY_IP);
+	fontBold.drawString("IP_2_ ", ofGetWindowWidth() - Layout::WINDOW_PADDING - totalWidth, Layout::WINDOW_PADDING - 7);
+	fontRegular.drawString(Constants::CY_IP, ofGetWindowWidth() - Layout::WINDOW_PADDING - totalWidth + width, Layout::WINDOW_PADDING - 7);
+
+	// Instrument 1
+	if (leftBody != NULL) {
+		int sz = Instruments::INSTRUMENT_LIST.size();
+		string instrument1 = Instruments::INSTRUMENT_LIST[leftBody->getInstrumentId() % sz];
+		ofPushMatrix();
+		ofRotateDeg(270);
+		width = fontBold.stringWidth("Instrument_1_ ");
+		totalWidth = width + fontRegular.stringWidth(instrument1);
+		fontBold.drawString("Instrument_1_ ", -(Layout::WINDOW_PADDING + totalWidth), Layout::WINDOW_PADDING - 7);
+		fontRegular.drawString(instrument1, -(Layout::WINDOW_PADDING + totalWidth - width), Layout::WINDOW_PADDING - 7);
+		ofPopMatrix();
+	}
+
+	if (rightBody != NULL) {
+		// Instrument 2
+		int sz = Instruments::INSTRUMENT_LIST.size();
+		string instrument2 = Instruments::INSTRUMENT_LIST[rightBody->getInstrumentId() % sz];
+		ofPushMatrix();
+		ofRotateDeg(90);
+		width = fontBold.stringWidth("Instrument_2_ ");
+		fontBold.drawString("Instrument_2_ ", Layout::WINDOW_PADDING, -(ofGetWindowWidth() - Layout::WINDOW_PADDING + 7));
+		fontRegular.drawString(instrument2, Layout::WINDOW_PADDING + width, -(ofGetWindowWidth() - Layout::WINDOW_PADDING + 7));
+		ofPopMatrix();
+	}
+
+	// Latency
+	string latency = this->networkManager->getLatency();
+	width = fontBold.stringWidth("Latency_ ");
+	totalWidth = width + fontRegular.stringWidth(latency);
+	fontBold.drawString("Latency_ ", (ofGetWindowWidth() - totalWidth) / 2, ofGetWindowHeight() - Layout::WINDOW_PADDING + 15);
+	fontRegular.drawString(latency, (ofGetWindowWidth() - totalWidth) / 2 + width, ofGetWindowHeight() - Layout::WINDOW_PADDING + 15);
+
+	ofPopStyle();
+}
+
+void ofApp::drawBodyTrackedStatus() {
+	TrackedBody* leftBody = this->getLeftBody();
+	TrackedBody* rightBody = this->getRightBody();
+	float currentScale = 2;
+	int bottom = ofGetWindowHeight() / currentScale - Layout::WINDOW_PADDING;
+
+	// Left body status
+	int leftX = Layout::FRAME_PADDING;
+	int leftY = bottom - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
+	int squareSize = Layout::SEQUENCER_ELEMENT_SIZE;
+	int circleRadius = (Layout::SEQUENCER_ELEMENT_SIZE - 6) / 2;
+
+	ofPushStyle();
+	ofSetColor(Colors::BACKGROUND);
+	ofFill();
+	ofDrawRectangle(leftX, leftY, squareSize, squareSize);
+	ofSetColor(Colors::YELLOW);
+	ofNoFill();
+	ofDrawRectangle(leftX, leftY, squareSize, squareSize);
+
+	if (leftBody != NULL) {
+		ofSetColor(Colors::BLUE_ACCENT);
+		ofFill();
+		ofDrawCircle(leftX + squareSize / 2, leftY + squareSize / 2, circleRadius);
+	}
+
+	ofNoFill();
+	ofSetColor(Colors::YELLOW);
+	ofDrawCircle(leftX + squareSize / 2, leftY + squareSize / 2, circleRadius);
+	ofPopStyle();
+
+	// Right body status
+	int rightX = ofGetWindowWidth() / currentScale - Layout::WINDOW_PADDING - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
+	int rightY = leftY;
+
+	ofPushStyle();
+	ofSetColor(Colors::BACKGROUND);
+	ofFill();
+	ofDrawRectangle(rightX, rightY, squareSize, squareSize);
+	ofSetColor(Colors::YELLOW);
+	ofNoFill();
+	ofDrawRectangle(rightX, rightY, squareSize, squareSize);
+
+	if (rightBody != NULL) {
+		ofSetColor(Colors::RED_ACCENT);
+		ofFill();
+		ofDrawCircle(rightX + squareSize / 2, rightY + squareSize / 2, circleRadius);
+	}
+
+	ofNoFill();
+	ofSetColor(Colors::YELLOW);
+	ofDrawCircle(rightX + squareSize / 2, rightY + squareSize / 2, circleRadius);
+	ofPopStyle();
+}
+
+void ofApp::drawFrequencyGradient() {
+
+}
+
+void ofApp::drawFrame() {
+	ofVec2f winSize = ofGetWindowSize();
+	ofPushStyle();
+	ofSetColor(Colors::BACKGROUND);
+	ofFill();
+	ofDrawRectangle(0, 0, Layout::WINDOW_PADDING, winSize.y);
+	ofDrawRectangle(0, winSize.y - Layout::WINDOW_PADDING, winSize.x, Layout::WINDOW_PADDING);
+	ofDrawRectangle(winSize.x - Layout::WINDOW_PADDING, 0, Layout::WINDOW_PADDING, winSize.y);
+	ofDrawRectangle(0, 0, winSize.x, Layout::WINDOW_PADDING);
+
+	ofSetColor(Colors::YELLOW);
+	ofNoFill();
+	ofDrawRectangle(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING, winSize.x - 2 * Layout::WINDOW_PADDING, winSize.y - 2 * Layout::WINDOW_PADDING);
+	ofPopStyle();
+}
+
 void ofApp::drawAlternate() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
@@ -713,15 +863,10 @@ void ofApp::drawAlternate() {
 	ofPushStyle();
 	ofSetColor(Colors::BACKGROUND);
 	ofDrawRectangle(0, 0, winSize.x, winSize.y);
-
-	ofSetColor(Colors::YELLOW);
-	ofNoFill();
-	ofDrawRectangle(40, 40, winSize.x - 80, winSize.y - 80);
-	//ofDrawRectangle(DEPTH_WIDTH / 2 - 0.5, 0, 1, DEPTH_HEIGHT);
 	ofPopStyle();
 
 	ofPushMatrix();
-	ofTranslate(40, 40);
+	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
 	ofScale(2.0);
 
 	this->drawBackgrounds();
@@ -756,8 +901,14 @@ void ofApp::drawAlternate() {
 	this->drawIntersection();
 
 	this->drawSequencer();
+	
+	this->drawBodyTrackedStatus();
+	this->drawFrequencyGradient();
 
 	ofPopMatrix();
+
+	this->drawFrame();
+	this->drawSystemStatus();
 }
 
 bool ofApp::isBorder(ofDefaultVec3 _pt) {
