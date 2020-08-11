@@ -41,6 +41,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 
 	this->isRecording = false;
 	this->generalColor = ofColor(255, 225, 128, 255);
+	this->segment = new ofPath();
 }
 
 void TrackedBody::setOSCManager(ofOSCManager* m)
@@ -138,7 +139,7 @@ void TrackedBody::updateContourData(vector<ofPolyline> contours)
 	else {
 		// Select matchesToCheck closest points in the new line to the first point in the persistent line
 		// And then checked the total distance between the circular permutations, in order to find the right order.
-		const int matchesToCheck = 10;
+		const int matchesToCheck = 5;
 
 		auto newVertices = newContour.getVertices();
 		auto persistentVertices = this->contour.getVertices();
@@ -184,12 +185,6 @@ void TrackedBody::updateDelayedContours() {
 			delayedContours[ct][i].y = (1 - smoothing) * this->contour[newIndex].y + smoothing * delayedContours[ct][i].y;
 		}
 	}
-}
-
-void TrackedBody::updateTextureData(ofImage texture)
-{
-	// TODO (cez): This might be inefficient.
-	//this->texture = ofImage(texture);
 }
 
 void TrackedBody::setDrawMode(int drawMode)
@@ -260,33 +255,33 @@ float TrackedBody::getScreenRatio()
 	return unit / (1.0 * DEPTH_WIDTH);
 }
 
-pair<ofPath, ofRectangle> TrackedBody::getContourSegment(int start, int amount)
+pair<ofPath*, ofRectangle> TrackedBody::getContourSegment(int start, int amount)
 {
 	//ofPolyline ctr = this->contour;
-	ofPolyline ctr = this->delayedContours[this->delayedContours.size() - 1];
-	ofPath segment;
-	int index = start % ctr.size();
+	ofPolyline* ctr = &(this->delayedContours[this->delayedContours.size() - 1]);
+	this->segment->clear();
+	int index = start % ctr->size();
 	int total = 0;
-	segment.moveTo(ctr[index]);
+	this->segment->moveTo((*ctr)[index]);
 
 	ofRectangle rect;
-	rect.x = rect.width = ctr[index].x;
-	rect.y = rect.height = ctr[index].y;
+	rect.x = rect.width = (*ctr)[index].x;
+	rect.y = rect.height = (*ctr)[index].y;
 
 	while (total < amount) {
-		index = (index + 1) % ctr.size();
+		index = (index + 1) % (*ctr).size();
 		total++;
-		segment.lineTo(ctr[index]);
+		this->segment->lineTo((*ctr)[index]);
 
-		rect.x = fmin(rect.x, ctr[index].x);
-		rect.y = fmin(rect.y, ctr[index].y);
-		rect.width = fmax(rect.width, ctr[index].x);
-		rect.height = fmax(rect.height, ctr[index].y);
+		rect.x = fmin(rect.x, (*ctr)[index].x);
+		rect.y = fmin(rect.y, (*ctr)[index].y);
+		rect.width = fmax(rect.width, (*ctr)[index].x);
+		rect.height = fmax(rect.height, (*ctr)[index].y);
 	}
 
 	rect.width -= rect.x;
 	rect.height -= rect.y;
-	return make_pair(segment, rect);
+	return make_pair(this->segment, rect);
 }
 
 void TrackedBody::update()
@@ -686,10 +681,10 @@ string TrackedBody::serialize()
 
 	ss << Constants::CONTOUR_DELIMITER << "\n";
 	// Resample contour we're sending in order to save bandwidth
-	//this->rawContour.getResampledByCount(100);
-	ss << this->rawContour.size() << "\n";
-	for (int i = 0; i < this->rawContour.size(); i++) {
-		ss << this->rawContour[i].x << " " << this->rawContour[i].y << "\n";
+	ofPolyline ctr = this->rawContour.getResampledByCount(this->contourPoints);
+	ss << ctr.size() << "\n";
+	for (int i = 0; i < ctr.size(); i++) {
+		ss << ctr[i].x << " " << ctr[i].y << "\n";
 	}
 
 	ss << Constants::IS_RECORDING_DELIMITER << "\n";
@@ -746,13 +741,13 @@ void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
 }
 
 void TrackedBody::sendOSCData()
-{
+{	
 	float value;
 	float normalizedValue;	
 	// Sequencer sound data
 	this->bodySoundPlayer->sendOSC(this->instrumentId);
 
-	if (ofGetFrameNum() % 2 != 0) return;
+	if (ofGetFrameNum() % 3 != 0) return;
 	// Send whether is recording
 	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 

@@ -73,9 +73,10 @@ void Sequencer::update()
 	if (this->trackedBody->getCurrentlyPlaying16Joints().size() > this->highlightedStep)
 		this->highlightedJoint = this->trackedBody->getCurrentlyPlaying16Joints()[this->highlightedStep];
 
-	for (auto const &it : this->steps) {
-		JointType joint = it.first;
-		SequencerStep* step = it.second;	
+	for (auto it = this->stepOrder.begin(); it != this->stepOrder.end(); ++it) {
+		JointType j = static_cast<JointType>(*it);
+		if (this->steps.find(j) == this->steps.end()) continue;
+		SequencerStep* step = this->steps[j];
 		step->registerBody(this->trackedBody, this->color, this->accentColor);
 		step->update();
 	}

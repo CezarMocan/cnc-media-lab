@@ -44,7 +44,6 @@ public:
 
 	virtual void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper);
 	virtual void updateContourData(vector<ofPolyline> contours);
-	virtual void updateTextureData(ofImage texture);
 	void updateDelayedContours();
 	void updateSkeletonContourDataFromSerialized(string s);
 	void setDrawMode(int drawMode);
@@ -58,7 +57,7 @@ public:
 	ofVec2f getJointPosition(JointType a);
 	float getScreenRatio();
 
-	pair<ofPath, ofRectangle> getContourSegment(int start, int amount);
+	pair<ofPath*, ofRectangle> getContourSegment(int start, int amount);
 
 	ofPolyline getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody);
 
@@ -99,6 +98,7 @@ public:
 	ICoordinateMapper* coordinateMapper;
 	ofPolyline rawContour;
 	ofPolyline contour;
+	ofPath* segment;
 	ofImage texture;
 
 	int index;

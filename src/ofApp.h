@@ -20,10 +20,19 @@ public:
 	void setup();
 	void update();
 	void draw();
-	void drawDebug();
+
+	void updateSequencer();
 	void drawSequencer();
+
+	ofPath* intersectionPath;
+	void updateIntersection();
 	void drawIntersection();
+
+	pair<ofPath*, ofRectangle> leftCtr;
+	pair<ofPath*, ofRectangle> rightCtr;
+	void updateBackgrounds();
 	void drawBackgrounds();
+
 	void drawAlternate();
 	void drawTrackedBodies(int drawMode);
 	void drawRemoteBodies(int drawMode);

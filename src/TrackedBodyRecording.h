@@ -27,7 +27,6 @@ public:
 	void draw() override;
 	void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper) override;
 	void updateContourData(vector<ofPolyline> contours) override;
-	void updateTextureData(ofImage texture) override;
 	void sendOSCData() override;
 private:
 	int playhead;

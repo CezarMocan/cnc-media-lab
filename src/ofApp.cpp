@@ -145,6 +145,8 @@ void ofApp::setup() {
 		JointType_SpineMid,
 		JointType_KneeLeft, JointType_KneeRight,
 		});
+
+	this->intersectionPath = new ofPath();
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -157,8 +159,13 @@ void ofApp::update() {
 		return;
 	}	
 	kinect.update();
+
+	this->detectBodySkeletons();
+	this->detectBodyContours();
+
 	this->oscSoundManager->update();
-	this->networkManager->update();	
+	this->networkManager->update();
+
 	// Update each tracked body after skeleton data was entered
 	// Send data over the network
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
@@ -215,6 +222,9 @@ void ofApp::update() {
 
 	this->manageBodyRecordings();
 	this->resolveInstrumentConflicts();
+	this->updateBackgrounds();
+	this->updateSequencer();
+	this->updateIntersection();
 }
 
 void ofApp::resolveInstrumentConflicts() {
@@ -290,7 +300,7 @@ void ofApp::detectBodyContours() {
 	// Split up the tracked bodies onto different textures
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
-		float t1 = ofGetSystemTimeMillis();
+		/*
 		bodyFbo.begin();
 		ofClear(0, 0, 0, 255);
 		bodyIndexShader.begin();
@@ -299,33 +309,20 @@ void ofApp::detectBodyContours() {
 		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
 		bodyIndexShader.end();
 		bodyFbo.end();
-		float t2 = ofGetSystemTimeMillis();
 
-		/*
-		bodyDebugFbo.begin();
-		bodyIndexShader.begin();
-		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
-		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
-		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
-		bodyIndexShader.end();
-		bodyDebugFbo.end();
-		*/
 
 		bodyFbo.getTexture().readToPixels(bodyPixels);
-		float t3 = ofGetSystemTimeMillis();		
 		bodyImage.setFromPixels(bodyPixels);
-		float t4 = ofGetSystemTimeMillis();
 		bodyImage.update();
-		float t5 = ofGetSystemTimeMillis();
+		*/
 
-		contourFinder.findContours(bodyImage);
-		float t6 = ofGetSystemTimeMillis();
+		//contourFinder.findContours(bodyImage);
+		contourFinder.setUseTargetColor(true);
+		contourFinder.setTargetColor(ofColor(bodyId));
+		contourFinder.findContours(kinect.getBodyIndexSource()->getPixels());
 		
 		TrackedBody* currentBody = this->trackedBodies[bodyId];
 		currentBody->updateContourData(contourFinder.getPolylines());
-		currentBody->updateTextureData(bodyImage);
-
-		float t7 = ofGetSystemTimeMillis();
 
 		//ofLogNotice() << (t2 - t1) << " " << (t3 - t2) << " " << (t4 - t3) << " " << (t5 - t4) << " " << (t6 - t5) << " " << (t7 - t6);		
 	}
@@ -512,14 +509,6 @@ void ofApp::draw() {
 		this->networkGui.draw();
 	else {
 		ofClear(0, 0, 0, 255);
-
-		bodyDebugFbo.begin();
-		ofClear(0, 0, 0, 255);
-		bodyDebugFbo.end();
-
-		this->detectBodySkeletons();
-		this->detectBodyContours();
-
 		//this->drawDebug();
 		this->drawAlternate();
 		// Draw GUI		
@@ -590,67 +579,32 @@ void ofApp::drawTrackedBodyRecordings(int drawMode) {
 	}
 }
 
-void ofApp::drawDebug()
-{
-	int previewWidth = DEPTH_WIDTH;
-	int previewHeight = DEPTH_HEIGHT;
-
-	ofPushMatrix();
-	ofTranslate(0, DEPTH_HEIGHT);
-	bodyDebugFbo.draw(0, 0);
-	ofPopMatrix();
-
-	ofPushMatrix();
-	ofTranslate(0, 0);
-	this->drawTrackedBodies(BDRAW_MODE_JOINTS | BDRAW_MODE_SOUND);
-	ofPopMatrix();
-
-	ofPushMatrix();
-	ofTranslate(DEPTH_WIDTH, 0);
-	this->drawTrackedBodies(BDRAW_MODE_MOVEMENT | BDRAW_MODE_SOUND);
-	ofPopMatrix();
-
-	// Draw each tracked body
-	ofPushMatrix();
-	ofTranslate(2 * DEPTH_WIDTH, 0);
-	this->drawTrackedBodies(BDRAW_MODE_RASTER | BDRAW_MODE_SOUND);
-	ofPopMatrix();
-
-	float colorHeight = previewWidth * (kinect.getColorSource()->getHeight() / kinect.getColorSource()->getWidth());
-
-	ofPushMatrix();
-	ofTranslate(DEPTH_WIDTH, DEPTH_HEIGHT);
-	kinect.getBodySource()->drawProjected(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT);
-	ofPopMatrix();
-
-	ofPushMatrix();
-	ofTranslate(2 * DEPTH_WIDTH, DEPTH_HEIGHT);
-	this->drawTrackedBodies(BDRAW_MODE_CONTOUR | BDRAW_MODE_SOUND);
-	ofPopMatrix();
-}
-
-void ofApp::drawSequencer() {
+void ofApp::updateSequencer() {
 	this->sequencerLeft->setTrackedBody(this->getLeftBody());
 	this->sequencerRight->setTrackedBody(this->getRightBody());
 
 	this->sequencerLeft->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
 	this->sequencerLeft->update();
-	this->sequencerLeft->draw();
 
 	this->sequencerRight->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
 	this->sequencerRight->update();
+}
+
+void ofApp::drawSequencer() {
+	this->sequencerLeft->draw();
 	this->sequencerRight->draw();
 }
 
-void ofApp::drawIntersection() {
+void ofApp::updateIntersection() {
 	TrackedBody* body = this->getLocalBody();
 	TrackedBody* remoteMainBody = this->getRemoteBody();
 
 	if (body == NULL || remoteMainBody == NULL) {
 		remoteIntersectionActive = false;
+		this->intersectionPath->clear();
 		return;
 	}
-	
+
 	this->clipper.Clear();
 
 	body->contour.close();
@@ -659,10 +613,11 @@ void ofApp::drawIntersection() {
 	this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
 	this->clipper.addPolyline(remoteMainBody->contour, ClipperLib::ptClip);
 	auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
-		
+
 	if (intersection.size() == 0) {
 		if (remoteIntersectionActive) this->oscSoundManager->sendBodyIntersection(0, 0, 0);
 		remoteIntersectionActive = false;
+		this->intersectionPath->clear();
 		return;
 	}
 
@@ -671,21 +626,16 @@ void ofApp::drawIntersection() {
 		remoteIntersectionStartTimestamp = ofGetSystemTimeMillis();
 	}
 
-	ofPath path;
-	path.clear();
+	this->intersectionPath->clear();
 	float totalArea = 0;
 	for (auto& line : intersection) {
-		path.moveTo(line[0]);
+		this->intersectionPath->moveTo(line[0]);
 		for (int i = 1; i < line.size(); i++) {
-			path.lineTo(line[i]);
+			this->intersectionPath->lineTo(line[i]);
 		}
-		path.close();
+		this->intersectionPath->close();
 		totalArea += line.getArea();
 	}
-
-	path.setFillColor(Colors::YELLOW);
-	path.setFilled(true);
-	path.draw();
 
 	float localBodyArea = fabs(body->contour.getArea());
 	float remoteBodyArea = fabs(remoteMainBody->contour.getArea());
@@ -695,8 +645,13 @@ void ofApp::drawIntersection() {
 	this->oscSoundManager->sendBodyIntersection(normalizedArea, intersection.size(), duration);
 }
 
-void ofApp::drawBackgrounds()
-{
+void ofApp::drawIntersection() {
+	this->intersectionPath->setFillColor(Colors::YELLOW);
+	this->intersectionPath->setFilled(true);
+	this->intersectionPath->draw();
+}
+
+void ofApp::updateBackgrounds() {
 	TrackedBody* leftBody = this->getLeftBody();
 	ofVec2f winSize = ofGetWindowSize() / 2.0;
 	ofVec2f padding = ofVec2f(25, 25);
@@ -705,41 +660,47 @@ void ofApp::drawBackgrounds()
 		int framesOnPosition = 2;
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		pair<ofPath, ofRectangle> ctr = leftBody->getContourSegment(pathStart, noPoints);
-		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));		
-		ctr.first.scale((winSize.x / 2 - 2 * padding.x) / ctr.second.width, ((winSize.y - 2 * padding.y) / ctr.second.height));
-		ctr.first.translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
-		
-		ctr.first.setFilled(true);
-		ctr.first.setColor(Colors::BLUE_TRANSPARENT);
-		ctr.first.draw();
-
-		ctr.first.setFilled(false);
-		ctr.first.setColor(Colors::BLUE);
-		ctr.first.setStrokeColor(Colors::BLUE_TRANSPARENT);
-		ctr.first.setStrokeWidth(1.);
-		ctr.first.draw();
+		this->leftCtr = leftBody->getContourSegment(pathStart, noPoints);
+		this->leftCtr.first->translate(glm::vec2(-this->leftCtr.second.x, -this->leftCtr.second.y));
+		this->leftCtr.first->scale((winSize.x / 2 - 2 * padding.x) / this->leftCtr.second.width, ((winSize.y - 2 * padding.y) / this->leftCtr.second.height));
+		this->leftCtr.first->translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
 	}
+
 	TrackedBody* rightBody = this->getRightBody();
 	if (rightBody != NULL) {
 		int framesOnPosition = 2;
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		pair<ofPath, ofRectangle> ctr = rightBody->getContourSegment(pathStart, noPoints);
+		this->rightCtr = rightBody->getContourSegment(pathStart, noPoints);
 
-		ctr.first.translate(glm::vec2(-ctr.second.x, -ctr.second.y));
-		ctr.first.scale((winSize.x / 2 - 2 * padding.x) / ctr.second.width, ((winSize.y - 2 * padding.y) / ctr.second.height));
-		ctr.first.translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));		
+		this->rightCtr.first->translate(glm::vec2(-this->rightCtr.second.x, -this->rightCtr.second.y));
+		this->rightCtr.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightCtr.second.width, ((winSize.y - 2 * padding.y) / this->rightCtr.second.height));
+		this->rightCtr.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
+	}
+}
 
-		ctr.first.setFilled(true);
-		ctr.first.setColor(Colors::RED_TRANSPARENT);
-		ctr.first.draw();
+void ofApp::drawBackgrounds()
+{
+	if (this->leftCtr.first != NULL) {		
+		this->leftCtr.first->setFilled(true);
+		this->leftCtr.first->setColor(Colors::BLUE_TRANSPARENT);
+		this->leftCtr.first->draw();
 
-		ctr.first.setFilled(false);
-		ctr.first.setColor(Colors::BLUE);
-		ctr.first.setStrokeColor(Colors::RED_TRANSPARENT);
-		ctr.first.setStrokeWidth(1.);
-		ctr.first.draw();
+		this->leftCtr.first->setFilled(false);
+		this->leftCtr.first->setStrokeColor(Colors::BLUE_TRANSPARENT);
+		this->leftCtr.first->setStrokeWidth(1.);
+		this->leftCtr.first->draw();
+	}
+
+	if (this->rightCtr.first != NULL) {
+		this->rightCtr.first->setFilled(true);
+		this->rightCtr.first->setColor(Colors::RED_TRANSPARENT);
+		this->rightCtr.first->draw();
+
+		this->rightCtr.first->setFilled(false);
+		this->rightCtr.first->setStrokeColor(Colors::RED_TRANSPARENT);
+		this->rightCtr.first->setStrokeWidth(1.);
+		this->rightCtr.first->draw();
 	}
 }
 
@@ -763,7 +724,7 @@ void ofApp::drawAlternate() {
 	ofTranslate(40, 40);
 	ofScale(2.0);
 
-	this->drawBackgrounds();	
+	this->drawBackgrounds();
 
 	TrackedBody* leftBody = this->getLeftBody();
 	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);

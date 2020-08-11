@@ -112,11 +112,6 @@ void TrackedBodyRecording::updateContourData(vector<ofPolyline> contours)
 	if (this->isRecording) TrackedBody::updateContourData(contours);
 }
 
-void TrackedBodyRecording::updateTextureData(ofImage texture)
-{
-	if (this->isRecording) TrackedBody::updateTextureData(texture);
-}
-
 void TrackedBodyRecording::sendOSCData()
 {
 	if (this->isPlaying) TrackedBody::sendOSCData();
