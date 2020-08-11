@@ -107,6 +107,7 @@ public:
 	static bool interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b);
 	vector<JointType> getCurrentlyPlayingJoints();
 	vector<JointType> getCurrentlyPlaying16Joints();
+	vector<float> getCurrentlyPlaying16Frequencies();
 
 	void setGeneralColor(ofColor color);
 

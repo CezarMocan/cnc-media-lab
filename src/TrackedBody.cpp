@@ -864,6 +864,11 @@ vector<JointType> TrackedBody::getCurrentlyPlaying16Joints()
 	return this->bodySoundPlayer->getCurrentlyPlaying16Joints();
 }
 
+vector<float> TrackedBody::getCurrentlyPlaying16Frequencies()
+{
+	return this->bodySoundPlayer->getCurrentlyPlaying16Frequencies();
+}
+
 void TrackedBody::setGeneralColor(ofColor color)
 {
 	this->generalColor = color;

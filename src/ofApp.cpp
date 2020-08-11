@@ -798,7 +798,7 @@ void ofApp::drawSystemStatus() {
 void ofApp::drawBodyTrackedStatus() {
 	TrackedBody* leftBody = this->getLeftBody();
 	TrackedBody* rightBody = this->getRightBody();
-	float currentScale = 2;
+	float currentScale = Layout::WINDOW_SCALE;
 	int bottom = ofGetWindowHeight() / currentScale - Layout::WINDOW_PADDING;
 
 	// Left body status
@@ -839,7 +839,7 @@ void ofApp::drawBodyTrackedStatus() {
 	ofDrawRectangle(rightX, rightY, squareSize, squareSize);
 
 	if (rightBody != NULL) {
-		ofSetColor(Colors::RED_ACCENT);
+		ofSetColor(Colors::RED);
 		ofFill();
 		ofDrawCircle(rightX + squareSize / 2, rightY + squareSize / 2, circleRadius);
 	}
@@ -851,7 +851,88 @@ void ofApp::drawBodyTrackedStatus() {
 }
 
 void ofApp::drawFrequencyGradient() {
+	float currentScale = Layout::WINDOW_SCALE;
+	int bottom = ofGetWindowHeight() / currentScale - Layout::WINDOW_PADDING;
+	int leftX = Layout::FRAME_PADDING * 2 + Layout::SEQUENCER_ELEMENT_SIZE;
+	int leftY = bottom - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
+	int width = ofGetWindowWidth() / currentScale - 2 * (Layout::WINDOW_PADDING / currentScale + Layout::SEQUENCER_ELEMENT_SIZE + 2 * Layout::FRAME_PADDING);
+	int height = Layout::SEQUENCER_ELEMENT_SIZE;
 
+	// Big rectangle gradient
+	this->frequencyGradient.clear();
+	this->frequencyGradient.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+	this->frequencyGradient.addVertex(ofPoint(leftX, leftY));
+	this->frequencyGradient.addColor(Colors::BACKGROUND);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY));
+	this->frequencyGradient.addColor(Colors::YELLOW);
+	this->frequencyGradient.addVertex(ofPoint(leftX, leftY + height));
+	this->frequencyGradient.addColor(Colors::BACKGROUND);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY + height));
+	this->frequencyGradient.addColor(Colors::YELLOW);
+	this->frequencyGradient.draw();
+	this->frequencyGradient.clear();
+	this->frequencyGradient.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY));
+	this->frequencyGradient.addColor(Colors::YELLOW);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width, leftY));
+	this->frequencyGradient.addColor(Colors::BACKGROUND);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY + height));
+	this->frequencyGradient.addColor(Colors::YELLOW);
+	this->frequencyGradient.addVertex(ofPoint(leftX + width, leftY + height));
+	this->frequencyGradient.addColor(Colors::BACKGROUND);
+	this->frequencyGradient.draw();
+
+	// 0Hz -> 5KHz text
+	ofPushMatrix();
+	ofPushStyle();
+	ofSetColor(Colors::YELLOW);
+	ofScale(1.0 / currentScale);
+	fontRegular.drawString("0Hz", currentScale * leftX, currentScale * (leftY - 3.5));
+	int textWidth = fontRegular.stringWidth("3kHz");
+	fontRegular.drawString("3kHz", currentScale * (leftX + width) - textWidth, currentScale * (leftY - 3.5));
+	ofPopStyle();
+	ofPopMatrix();
+
+	// Frequency indicator for left body
+
+	int indicatorPadding = 4;
+	int indicatorHeight = Layout::SEQUENCER_ELEMENT_SIZE - 2 * indicatorPadding;
+	int indicatorWidth = indicatorHeight / 2;
+	int maxFreq = 3000;
+
+	TrackedBody* leftBody = this->getLeftBody();
+	if (leftBody != NULL) {
+		vector<float> freqs = leftBody->getCurrentlyPlaying16Frequencies();
+		int index = this->oscSoundManager->getSequencerStep() - 1;
+		if (freqs.size() > index) {
+			float frequency = freqs[index];
+			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
+			int indicatorY = leftY + indicatorPadding;
+
+			ofPushStyle();
+			ofSetColor(Colors::BLUE_ACCENT);
+			ofFill();
+			ofDrawRectangle(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
+			ofPopStyle();
+		}
+	}
+
+	TrackedBody* rightBody = this->getRightBody();
+	if (rightBody != NULL) {
+		vector<float> freqs = rightBody->getCurrentlyPlaying16Frequencies();
+		int index = this->oscSoundManager->getSequencerStep() - 1;
+		if (freqs.size() > index) {
+			float frequency = freqs[index];
+			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
+			int indicatorY = leftY + indicatorPadding;
+
+			ofPushStyle();
+			ofSetColor(Colors::RED);
+			ofFill();
+			ofDrawRectangle(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
+			ofPopStyle();
+		}
+	}
 }
 
 void ofApp::drawFrame() {

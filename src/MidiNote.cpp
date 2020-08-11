@@ -41,8 +41,8 @@ int MidiNote::getCode()
 float MidiNote::getFrequency()
 {
 	int midiCode = this->getCode();
-	int a = 440; // a is 440 hz...
-	float freq = (a / 32) * (2 ^ ((midiCode - 9) / 12));
+	float a = 440; // a is 440 hz...
+	float freq = (a / 32.0) * (1 << ((midiCode - 9) / 12));
 	return freq;
 }
 

@@ -100,6 +100,8 @@ public:
 	ofPixels bodyPixels;
 	ofImage bodyImage;
 
+	ofMesh frequencyGradient;
+
 	ofxCv::ContourFinder contourFinder;
 
 	float headX = 0, headY = 0;
