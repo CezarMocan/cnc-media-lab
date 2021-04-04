@@ -1,4 +1,8 @@
 bin.zip
 .vs
 obj
-bin
+bin/nycml-kinect-1*
+bin/*.exe
+bin/*.dll
+bin/*.lib
+bin/*.pdb

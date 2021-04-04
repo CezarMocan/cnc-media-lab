@@ -64,60 +64,10 @@ void ofApp::setup() {
 	contourFinder.setThreshold(15);
 
 	// GUI setup	
-	this->useBlur = false;
-	this->useErode = false;
-	this->useDilate = false;
-
-	this->voronoiForceCellsInsideBody = false;
-	this->voronoiFillMode = false;
-	this->voronoiDrawCellCenters = false;
-	this->voronoiConnectCellCenters = false;	
-
 	this->guiVisible = false;
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
-	gui.add(automaticShadows.set("Auto Shadows", true));
-
-	/*
-	gui.add(localBodyDrawsContour.set("Local Body: Contour", true));
-	gui.add(localBodyDrawsJoints.set("Local Body: Joints", false));
-	gui.add(localBodyDrawsFill.set("Local Body: Fill", false));
-	gui.add(localBodyDrawsHLines.set("Local Body: HLines", false));
-	gui.add(localBodyDrawsVLines.set("Local Body: VLines", false));
-	gui.add(localBodyDrawsDots.set("Local Body: Dots", false));
-	gui.add(localBodyDrawsGrid.set("Local Body: Grid", false));
-
-	gui.add(remoteBodyDrawsContour.set("Remote Body: Contour", true));
-	gui.add(remoteBodyDrawsJoints.set("Remote Body: Joints", false));
-	gui.add(remoteBodyDrawsFill.set("Remote Body: Fill", false));
-	gui.add(remoteBodyDrawsHLines.set("Remote Body: HLines", false));
-	gui.add(remoteBodyDrawsVLines.set("Remote Body: VLines", false));
-	gui.add(remoteBodyDrawsDots.set("Remote Body: Dots", false));
-	gui.add(remoteBodyDrawsGrid.set("Remote Body: Grid", false));
-
-
-	gui.add(recordedBodyDrawsContour.set("Recorded Body: Contour", true));
-	gui.add(recordedBodyDrawsJoints.set("Recorded Body: Joints", false));
-	gui.add(recordedBodyDrawsFill.set("Recorded Body: Fill", false));
-	gui.add(recordedBodyDrawsHLines.set("Recorded Body: HLines", false));
-	gui.add(recordedBodyDrawsVLines.set("Recorded Body: VLines", false));
-	gui.add(recordedBodyDrawsDots.set("Recorded Body: Dots", false));
-	gui.add(recordedBodyDrawsGrid.set("Recorded Body: Grid", false));
-	*/
-
-
-	ofParameter<float> voronoiEnvironmentNoise;
-	voronoiGui.setup();
-	voronoiGui.add(voronoiEnvironmentCells.set("[V] Background Cells", 50, 0, 1000));
-	voronoiGui.add(voronoiBodyCells.set("[V] Body Cells", 250, 0, 1000));
-	voronoiGui.add(voronoiForceCellsInsideBody.set("[V] Force cells inside body", false));
-	voronoiGui.add(voronoiSmoothing.set("[V] Cell smoothing", 0., 0., 30.));
-	voronoiGui.add(voronoiEnvironmentNoise.set("[V] Background Noise", 0., 0., 3.));
-	voronoiGui.add(voronoiFillMode.set("[V] Fill mode", false));
-	voronoiGui.add(voronoiBackgroundHue.set("[V] Background Hue", 0, 0, 255));
-	voronoiGui.add(voronoiBodyHue.set("[V] Body Hue", 128, 0, 255));
-	voronoiGui.add(voronoiDrawCellCenters.set("[V] Draw Cell Centers", false));
-	voronoiGui.add(voronoiConnectCellCenters.set("[V] Connect Cell Centers", false));
+	gui.add(automaticShadows.set("Auto Shadows", true));	
 
 	MidiPlayer::loadSoundFonts();
 
@@ -576,9 +526,9 @@ void ofApp::drawRemoteBodies(int drawMode) {
 				(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
 				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 			if (this->getLeftBody() == this->getRemoteBody()) {
-				body->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
+				body->setGeneralColor(Colors::BLUE_SHADOW);
 			} else {
-				body->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
+				body->setGeneralColor(Colors::RED_SHADOW);
 			}
 		}
 		else {
@@ -599,9 +549,9 @@ void ofApp::drawTrackedBodyRecordings(int drawMode) {
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 		TrackedBodyRecording* rec = *it;
 		if (this->getLocalBody() == this->getLeftBody()) {
-			rec->setGeneralColor(Colors::BLUE_ACCENT_TRANSPARENT);
+			rec->setGeneralColor(Colors::BLUE_SHADOW);
 		} else if (this->getLocalBody() == this->getRightBody()) {
-			rec->setGeneralColor(Colors::RED_ACCENT_TRANSPARENT);
+			rec->setGeneralColor(Colors::RED_SHADOW);
 		}
 		rec->setDrawMode(drawMode);
 		rec->draw();
@@ -888,8 +838,8 @@ void ofApp::drawFrequencyGradient() {
 	ofSetColor(Colors::YELLOW);
 	ofScale(1.0 / currentScale);
 	fontRegular.drawString("0Hz", currentScale * leftX, currentScale * (leftY - 3.5));
-	int textWidth = fontRegular.stringWidth("3kHz");
-	fontRegular.drawString("3kHz", currentScale * (leftX + width) - textWidth, currentScale * (leftY - 3.5));
+	int textWidth = fontRegular.stringWidth("2kHz");
+	fontRegular.drawString("2kHz", currentScale * (leftX + width) - textWidth, currentScale * (leftY - 3.5));
 	ofPopStyle();
 	ofPopMatrix();
 
@@ -898,7 +848,7 @@ void ofApp::drawFrequencyGradient() {
 	int indicatorPadding = 4;
 	int indicatorHeight = Layout::SEQUENCER_ELEMENT_SIZE - 2 * indicatorPadding;
 	int indicatorWidth = indicatorHeight / 2;
-	int maxFreq = 3000;
+	int maxFreq = 2000;
 
 	TrackedBody* leftBody = this->getLeftBody();
 	if (leftBody != NULL) {

@@ -576,6 +576,9 @@ void TrackedBody::draw()
 	case 3:
 		this->drawMode = BDRAW_MODE_DOTS;
 		break;
+//	case 4:
+	//	this->drawMode = BDRAW_MODE_VLINES;
+		//break;
 	default:
 		this->drawMode = BDRAW_MODE_VLINES;
 		break;
@@ -750,9 +753,11 @@ void TrackedBody::sendOSCData()
 	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 
 	// Distances
+	/*
 	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_WristRight);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-hand-r-hand", normalizedValue);
+	*/
 
 	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
@@ -762,15 +767,20 @@ void TrackedBody::sendOSCData()
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "r-hand-r-knee", normalizedValue);
 
+	/*
 	value = this->getNormalizedJointsDistance(JointType_Head, JointType_AnkleLeft);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-knee-r-knee", normalizedValue);
+	*/
 
+	/*
 	value = this->getNormalizedArea();
 	normalizedValue = ofMap(value, 0, 15, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "body-area", normalizedValue);
+	*/
 
 	// Angles
+	/*
 	value = (this->getJointsAngle(JointType_HipRight, JointType_ShoulderRight, JointType_WristRight) + 30);
 	if (value >= 360) value -= 360;
 	normalizedValue = ofMap(value, 0, 360, 0, 1023);
@@ -805,6 +815,7 @@ void TrackedBody::sendOSCData()
 	if (value >= 360) value -= 360;
 	normalizedValue = ofMap(value, 0, 180, 0, 1023, true);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "legs", normalizedValue);
+	*/
 
 	// Movements	
 	value = this->getJointNormalizedSpeed(JointType_WristLeft);
@@ -823,6 +834,7 @@ void TrackedBody::sendOSCData()
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-foot", normalizedValue);
 
+	/*
 	value = this->getJointNormalizedSpeed(JointType_HipLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-hip", normalizedValue);
@@ -830,6 +842,7 @@ void TrackedBody::sendOSCData()
 	value = this->getJointNormalizedSpeed(JointType_HipRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-hip", normalizedValue);
+	*/
 
 	value = this->getJointNormalizedSpeed(JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
@@ -839,6 +852,7 @@ void TrackedBody::sendOSCData()
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-knee", normalizedValue);
 
+	/*
 	value = this->getJointNormalizedSpeed(JointType_ShoulderLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-shoulder", normalizedValue);
@@ -846,6 +860,7 @@ void TrackedBody::sendOSCData()
 	value = this->getJointNormalizedSpeed(JointType_ShoulderRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-shoulder", normalizedValue);
+	*/
 
 }
 
