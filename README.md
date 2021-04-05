@@ -1,6 +1,8 @@
 ## Shadow Network
 
-A networked Kinect + openFrameworks + MaxMSP software for two remote performers, which turns body movements into sound. Further project details, documentation and demos can be found [here](http://cezar.io/shadownetwork).
+A networked Kinect + openFrameworks + MaxMSP software for two remote performers, which turns body movements into sound. 
+
+**Further project details, documentation and demos can be found [here](http://cezar.io/shadownetwork).**
 
 ![Shadow Network](https://i.imgur.com/ifdLtl3.png)
 
@@ -20,3 +22,5 @@ A networked Kinect + openFrameworks + MaxMSP software for two remote performers,
 * I used Visual Studio as an IDE for development, and the internal file organization structure from VS isn't reflected on the file system, so navigating the repository might be a bit confusing. For reference, the VS project is organized like this:
 
 ![Visual Studio Structure](https://i.imgur.com/IZn9E2B.png)
+
+* The C++ in this project (which is a pretty accurate reflection of my skill) is quite rudimentary. Even though I've learned programming with C++ (was using it for competitive programming, between 2005 and 2012) and choose openFrameworks for any creative coding project or installation that's too much for Javascript, I've only written C++ "professionally" – as part of a team, with standards, code reviews & co. – on a 3-month long project in 2012. Meaning that I can be productive & deliver from day one, but might need a bit of time to learn better patterns, newer language features & so on.
