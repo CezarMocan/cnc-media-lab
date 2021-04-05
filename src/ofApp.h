@@ -12,7 +12,6 @@
 #include "BodySoundPlayer.h"
 #include "ofxClipper.h"
 #include "GUIManager.h"
-#include "Sequencer.h"
 
 class ofApp : public ofBaseApp {
 
@@ -88,7 +87,7 @@ public:
 	ofShader grainShader;
 	ofFbo grainFbo;
 
-	GUIManager* appGuiManager;
+	GUIManager* guiManager;
 
 	// ofMesh frequencyGradient;
 

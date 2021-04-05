@@ -12,11 +12,13 @@ class GUIManager
 {
 public:
 	GUIManager();
-	void update(TrackedBody* leftBody, TrackedBody* rightBody);
-	void draw();
+	void update(TrackedBody* leftBody, TrackedBody* rightBody, int currentSequencerStep, bool isConnected, string latency);
 
 	TrackedBody* leftBody;
 	TrackedBody* rightBody;
+	int currentSequencerStep;
+	bool isConnected;
+	string latency;
 
 	// UI component at the bottom, for drawing current sound frequency
 	ofMesh frequencyGradient;
@@ -33,10 +35,16 @@ public:
 	void updateBackgroundContours();
 	void drawBackgroundContours();
 
-	// Remaining UI components
+	// System status (connection indicator, latency, IPs & so on.)
 	void drawSystemStatus();
+
+	// Are the bodies currently tracked or not
 	void drawBodyTrackedStatus();
+
+	// Gradient at the bottom, showing frequency of current sound
 	void drawFrequencyGradient();
+
+	// Rectangle frame around whole composition
 	void drawRectangularFrame();
 
 	//// Fonts

@@ -12,7 +12,7 @@ using namespace Constants;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	// Window setup
+	// Application window setup
 	int windowWidth = 2 * DEPTH_WIDTH;
 	ofSetWindowShape(windowWidth + 2 * Layout::WINDOW_PADDING, windowWidth * 3 / 4 + Layout::WINDOW_PADDING);
 
@@ -34,6 +34,7 @@ void ofApp::setup() {
 
 	// OSC setup
 	maxMSPNetworkManager = new MaxMSPNetworkManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
+	peerNetworkManager = NULL;
 
 	// Tracked bodies initialize
 	TrackedBody::initialize();
@@ -49,7 +50,7 @@ void ofApp::setup() {
 	parametersPanel.add(bodyContourPolygonFidelity.set("Contour #points", 200, 10, 1000));
 	parametersPanel.add(automaticShadowsEnabled.set("Auto Shadows", true));	
 
-	// Network ofGui setup
+	// Networking panel setup
 	peerConnectButton.addListener(this, &ofApp::peerConnectButtonPressed);
 
 	networkGui.setup();	
@@ -58,9 +59,6 @@ void ofApp::setup() {
 	networkGui.add(localPort.set("Local Port", "12347"));
 	networkGui.add(isLeftPlayer.set("Left Side", true));
 	networkGui.add(peerConnectButton.setup("Connect"));
-
-	// Network manager initialization
-	peerNetworkManager = NULL;
 	
 	// Remote bodies intersection setup
 	bodiesIntersectionPath = new ofPath();
@@ -68,6 +66,7 @@ void ofApp::setup() {
 	bodiesIntersectionStartTimestamp = 0;
 
 	// Interface manager setup
+	guiManager = new GUIManager();
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -92,8 +91,12 @@ void ofApp::update() {
 
 	this->resolveInstrumentConflicts();
 
-	this->updateBackgroundContours();
-	this->updateSequencer();
+	this->guiManager->update(this->getLeftBody(), 
+		this->getRightBody(), 
+		this->maxMSPNetworkManager->getSequencerStep() - 1, 
+		this->peerNetworkManager->isConnected(),
+		this->peerNetworkManager->getLatency()
+	);
 
 	this->updateBodiesIntersection();
 }
@@ -416,7 +419,7 @@ void ofApp::draw() {
 		grainFbo.draw(0, 0);
 		grainShader.end();
 
-		// Draw GUI		
+		// Draw parameters panel
 		if (this->parametersPanelVisible) {
 			parametersPanel.draw();
 			stringstream ss;
@@ -441,19 +444,19 @@ void ofApp::drawInterface() {
 	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
 	ofScale(Layout::WINDOW_SCALE);
 
-	this->drawBackgroundContours();
+	this->guiManager->drawBackgroundContours();
 	this->drawBodyShadows();
 	this->drawTrackedBodies();
 	this->drawRemoteBodies();
 	this->drawBodiesIntersection();
-	this->drawSequencer();
-	this->drawBodyTrackedStatus();
-	this->drawFrequencyGradient();
+	this->guiManager->drawSequencer();
+	this->guiManager->drawBodyTrackedStatus();
+	this->guiManager->drawFrequencyGradient();
 
 	ofPopMatrix();
 
-	this->drawRectangularFrame();
-	this->drawSystemStatus();
+	this->guiManager->drawRectangularFrame();
+	this->guiManager->drawSystemStatus();
 }
 
 void ofApp::drawTrackedBodies() {
@@ -490,22 +493,6 @@ void ofApp::drawBodyShadows() {
 		}
 		rec->draw();
 	}
-}
-
-void ofApp::updateSequencer() {
-	this->sequencerLeft->setTrackedBody(this->getLeftBody());
-	this->sequencerRight->setTrackedBody(this->getRightBody());
-
-	this->sequencerLeft->setCurrentHighlight(this->maxMSPNetworkManager->getSequencerStep() - 1);
-	this->sequencerLeft->update();
-
-	this->sequencerRight->setCurrentHighlight(this->maxMSPNetworkManager->getSequencerStep() - 1);
-	this->sequencerRight->update();
-}
-
-void ofApp::drawSequencer() {
-	this->sequencerLeft->draw();
-	this->sequencerRight->draw();
 }
 
 void ofApp::updateBodiesIntersection() {
@@ -562,276 +549,6 @@ void ofApp::drawBodiesIntersection() {
 	this->bodiesIntersectionPath->setFillColor(Colors::YELLOW);
 	this->bodiesIntersectionPath->setFilled(true);
 	this->bodiesIntersectionPath->draw();
-}
-
-void ofApp::updateBackgroundContours() {
-	TrackedBody* leftBody = this->getLeftBody();
-	ofVec2f winSize = ofGetWindowSize() / 2.0;
-	ofVec2f padding = ofVec2f(25, 25);
-
-	if (leftBody != NULL) {
-		int framesOnPosition = 2;
-		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
-		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		this->leftBackgroundContour = leftBody->getContourSegment(pathStart, noPoints);
-		this->leftBackgroundContour.first->translate(glm::vec2(-this->leftBackgroundContour.second.x, -this->leftBackgroundContour.second.y));
-		this->leftBackgroundContour.first->scale((winSize.x / 2 - 2 * padding.x) / this->leftBackgroundContour.second.width, ((winSize.y - 2 * padding.y) / this->leftBackgroundContour.second.height));
-		this->leftBackgroundContour.first->translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
-	}
-
-	TrackedBody* rightBody = this->getRightBody();
-	if (rightBody != NULL) {
-		int framesOnPosition = 2;
-		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
-		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		this->rightBackgroundContour = rightBody->getContourSegment(pathStart, noPoints);
-		this->rightBackgroundContour.first->translate(glm::vec2(-this->rightBackgroundContour.second.x, -this->rightBackgroundContour.second.y));
-		this->rightBackgroundContour.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightBackgroundContour.second.width, ((winSize.y - 2 * padding.y) / this->rightBackgroundContour.second.height));
-		this->rightBackgroundContour.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
-	}
-}
-
-void ofApp::drawBackgroundContours()
-{
-	if (this->leftBackgroundContour.first != NULL) {		
-		this->leftBackgroundContour.first->setFilled(true);
-		this->leftBackgroundContour.first->setColor(Colors::BLUE_TRANSPARENT);
-		this->leftBackgroundContour.first->draw();
-
-		this->leftBackgroundContour.first->setFilled(false);
-		this->leftBackgroundContour.first->setStrokeColor(Colors::BLUE_TRANSPARENT);
-		this->leftBackgroundContour.first->setStrokeWidth(1.);
-		this->leftBackgroundContour.first->draw();
-	}
-
-	if (this->rightBackgroundContour.first != NULL) {
-		this->rightBackgroundContour.first->setFilled(true);
-		this->rightBackgroundContour.first->setColor(Colors::RED_TRANSPARENT);
-		this->rightBackgroundContour.first->draw();
-
-		this->rightBackgroundContour.first->setFilled(false);
-		this->rightBackgroundContour.first->setStrokeColor(Colors::RED_TRANSPARENT);
-		this->rightBackgroundContour.first->setStrokeWidth(1.);
-		this->rightBackgroundContour.first->draw();
-	}
-}
-
-void ofApp::drawSystemStatus() {
-	TrackedBody* leftBody = this->getLeftBody();
-	TrackedBody* rightBody = this->getRightBody();
-
-	bool isConnected = this->peerNetworkManager->isConnected();
-	float width, totalWidth;
-	ofPushStyle();
-	ofSetColor(Colors::YELLOW);
-
-	// Status	
-	width = fontBold.stringWidth("Status_ ");
-	fontBold.drawString("Status_ ", Layout::WINDOW_PADDING, Layout::WINDOW_PADDING - 7);
-	string status = isConnected ? "Connected" : "Not Connected";
-	fontRegular.drawString(status, Layout::WINDOW_PADDING + width, Layout::WINDOW_PADDING - 7);
-	
-	// IP 1
-	width = fontBold.stringWidth("IP_1_ ");
-	totalWidth = width + fontRegular.stringWidth(Constants::CEZAR_IP);
-	fontBold.drawString("IP_1_ ", (ofGetWindowWidth() - totalWidth) / 2, Layout::WINDOW_PADDING - 7);	
-	fontRegular.drawString(Constants::CEZAR_IP, (ofGetWindowWidth() - totalWidth) / 2 + width, Layout::WINDOW_PADDING - 7);
-
-	// IP 2
-	width = fontBold.stringWidth("IP_2_ ");
-	totalWidth = width + fontRegular.stringWidth(Constants::CY_IP);
-	fontBold.drawString("IP_2_ ", ofGetWindowWidth() - Layout::WINDOW_PADDING - totalWidth, Layout::WINDOW_PADDING - 7);
-	fontRegular.drawString(Constants::CY_IP, ofGetWindowWidth() - Layout::WINDOW_PADDING - totalWidth + width, Layout::WINDOW_PADDING - 7);
-
-	// Instrument 1
-	if (leftBody != NULL) {
-		int sz = Instruments::INSTRUMENT_LIST.size();
-		string instrument1 = Instruments::INSTRUMENT_LIST[leftBody->getInstrumentId() % sz];
-		ofPushMatrix();
-		ofRotateDeg(270);
-		width = fontBold.stringWidth("Instrument_1_ ");
-		totalWidth = width + fontRegular.stringWidth(instrument1);
-		fontBold.drawString("Instrument_1_ ", -(Layout::WINDOW_PADDING + totalWidth), Layout::WINDOW_PADDING - 7);
-		fontRegular.drawString(instrument1, -(Layout::WINDOW_PADDING + totalWidth - width), Layout::WINDOW_PADDING - 7);
-		ofPopMatrix();
-	}
-
-	if (rightBody != NULL) {
-		// Instrument 2
-		int sz = Instruments::INSTRUMENT_LIST.size();
-		string instrument2 = Instruments::INSTRUMENT_LIST[rightBody->getInstrumentId() % sz];
-		ofPushMatrix();
-		ofRotateDeg(90);
-		width = fontBold.stringWidth("Instrument_2_ ");
-		fontBold.drawString("Instrument_2_ ", Layout::WINDOW_PADDING, -(ofGetWindowWidth() - Layout::WINDOW_PADDING + 7));
-		fontRegular.drawString(instrument2, Layout::WINDOW_PADDING + width, -(ofGetWindowWidth() - Layout::WINDOW_PADDING + 7));
-		ofPopMatrix();
-	}
-
-	// Latency
-	string latency = this->peerNetworkManager->getLatency();
-	width = fontBold.stringWidth("Latency_ ");
-	totalWidth = width + fontRegular.stringWidth(latency);
-	fontBold.drawString("Latency_ ", (ofGetWindowWidth() - totalWidth) / 2, ofGetWindowHeight() - Layout::WINDOW_PADDING + 15);
-	fontRegular.drawString(latency, (ofGetWindowWidth() - totalWidth) / 2 + width, ofGetWindowHeight() - Layout::WINDOW_PADDING + 15);
-
-	ofPopStyle();
-}
-
-void ofApp::drawBodyTrackedStatus() {
-	TrackedBody* leftBody = this->getLeftBody();
-	TrackedBody* rightBody = this->getRightBody();
-	float currentScale = Layout::WINDOW_SCALE;
-	int bottom = ofGetWindowHeight() / currentScale - Layout::WINDOW_PADDING;
-
-	// Left body status
-	int leftX = Layout::FRAME_PADDING;
-	int leftY = bottom - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
-	int squareSize = Layout::SEQUENCER_ELEMENT_SIZE;
-	int circleRadius = (Layout::SEQUENCER_ELEMENT_SIZE - 6) / 2;
-
-	ofPushStyle();
-	ofSetColor(Colors::BACKGROUND);
-	ofFill();
-	ofDrawRectangle(leftX, leftY, squareSize, squareSize);
-	ofSetColor(Colors::YELLOW);
-	ofNoFill();
-	ofDrawRectangle(leftX, leftY, squareSize, squareSize);
-
-	if (leftBody != NULL) {
-		ofSetColor(Colors::BLUE_ACCENT);
-		ofFill();
-		ofDrawCircle(leftX + squareSize / 2, leftY + squareSize / 2, circleRadius);
-	}
-
-	ofNoFill();
-	ofSetColor(Colors::YELLOW);
-	ofDrawCircle(leftX + squareSize / 2, leftY + squareSize / 2, circleRadius);
-	ofPopStyle();
-
-	// Right body status
-	int rightX = ofGetWindowWidth() / currentScale - Layout::WINDOW_PADDING - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
-	int rightY = leftY;
-
-	ofPushStyle();
-	ofSetColor(Colors::BACKGROUND);
-	ofFill();
-	ofDrawRectangle(rightX, rightY, squareSize, squareSize);
-	ofSetColor(Colors::YELLOW);
-	ofNoFill();
-	ofDrawRectangle(rightX, rightY, squareSize, squareSize);
-
-	if (rightBody != NULL) {
-		ofSetColor(Colors::RED);
-		ofFill();
-		ofDrawCircle(rightX + squareSize / 2, rightY + squareSize / 2, circleRadius);
-	}
-
-	ofNoFill();
-	ofSetColor(Colors::YELLOW);
-	ofDrawCircle(rightX + squareSize / 2, rightY + squareSize / 2, circleRadius);
-	ofPopStyle();
-}
-
-void ofApp::drawFrequencyGradient() {
-	float currentScale = Layout::WINDOW_SCALE;
-	int bottom = ofGetWindowHeight() / currentScale - Layout::WINDOW_PADDING;
-	int leftX = Layout::FRAME_PADDING * 2 + Layout::SEQUENCER_ELEMENT_SIZE;
-	int leftY = bottom - Layout::FRAME_PADDING - Layout::SEQUENCER_ELEMENT_SIZE;
-	int width = ofGetWindowWidth() / currentScale - 2 * (Layout::WINDOW_PADDING / currentScale + Layout::SEQUENCER_ELEMENT_SIZE + 2 * Layout::FRAME_PADDING);
-	int height = Layout::SEQUENCER_ELEMENT_SIZE;
-
-	// Big rectangle gradient
-	this->frequencyGradient.clear();
-	this->frequencyGradient.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
-	this->frequencyGradient.addVertex(ofPoint(leftX, leftY));
-	this->frequencyGradient.addColor(Colors::BACKGROUND);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY));
-	this->frequencyGradient.addColor(Colors::YELLOW);
-	this->frequencyGradient.addVertex(ofPoint(leftX, leftY + height));
-	this->frequencyGradient.addColor(Colors::BACKGROUND);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY + height));
-	this->frequencyGradient.addColor(Colors::YELLOW);
-	this->frequencyGradient.draw();
-	this->frequencyGradient.clear();
-	this->frequencyGradient.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY));
-	this->frequencyGradient.addColor(Colors::YELLOW);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width, leftY));
-	this->frequencyGradient.addColor(Colors::BACKGROUND);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width / 2, leftY + height));
-	this->frequencyGradient.addColor(Colors::YELLOW);
-	this->frequencyGradient.addVertex(ofPoint(leftX + width, leftY + height));
-	this->frequencyGradient.addColor(Colors::BACKGROUND);
-	this->frequencyGradient.draw();
-
-	// 0Hz -> 5KHz text
-	ofPushMatrix();
-	ofPushStyle();
-	ofSetColor(Colors::YELLOW);
-	ofScale(1.0 / currentScale);
-	fontRegular.drawString("0Hz", currentScale * leftX, currentScale * (leftY - 3.5));
-	int textWidth = fontRegular.stringWidth("2kHz");
-	fontRegular.drawString("2kHz", currentScale * (leftX + width) - textWidth, currentScale * (leftY - 3.5));
-	ofPopStyle();
-	ofPopMatrix();
-
-	// Frequency indicator for left body
-	int indicatorPadding = 4;
-	int indicatorHeight = Layout::SEQUENCER_ELEMENT_SIZE - 2 * indicatorPadding;
-	int indicatorWidth = indicatorHeight / 2;
-	int maxFreq = 2000;
-
-	TrackedBody* leftBody = this->getLeftBody();
-	if (leftBody != NULL) {
-		vector<float> freqs = leftBody->getCurrentlyPlaying16Frequencies();
-		int index = this->maxMSPNetworkManager->getSequencerStep() - 1;
-		if (freqs.size() > index) {
-			float frequency = freqs[index];
-			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
-			int indicatorY = leftY + indicatorPadding;
-
-			ofPushStyle();
-			ofSetColor(Colors::BLUE_ACCENT);
-			ofFill();
-			ofDrawRectangle(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
-			ofPopStyle();
-		}
-	}
-
-	// Frequency indicator for right body
-	TrackedBody* rightBody = this->getRightBody();
-	if (rightBody != NULL) {
-		vector<float> freqs = rightBody->getCurrentlyPlaying16Frequencies();
-		int index = this->maxMSPNetworkManager->getSequencerStep() - 1;
-		if (freqs.size() > index) {
-			float frequency = freqs[index];
-			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
-			int indicatorY = leftY + indicatorPadding;
-
-			ofPushStyle();
-			ofSetColor(Colors::RED);
-			ofFill();
-			ofDrawRectangle(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
-			ofPopStyle();
-		}
-	}
-}
-
-void ofApp::drawRectangularFrame() {
-	ofVec2f winSize = ofGetWindowSize();
-	ofPushStyle();
-	ofSetColor(Colors::BACKGROUND);
-	ofFill();
-	ofDrawRectangle(0, 0, Layout::WINDOW_PADDING, winSize.y);
-	ofDrawRectangle(0, winSize.y - Layout::WINDOW_PADDING, winSize.x, Layout::WINDOW_PADDING);
-	ofDrawRectangle(winSize.x - Layout::WINDOW_PADDING, 0, Layout::WINDOW_PADDING, winSize.y);
-	ofDrawRectangle(0, 0, winSize.x, Layout::WINDOW_PADDING);
-
-	ofSetColor(Colors::YELLOW);
-	ofNoFill();
-	ofDrawRectangle(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING, winSize.x - 2 * Layout::WINDOW_PADDING, winSize.y - 2 * Layout::WINDOW_PADDING);
-	ofPopStyle();
 }
 
 //--------------------------------------------------------------
