@@ -1,9 +1,4 @@
-﻿// This example shows how to work with the BodyIndex image in order to create
-// a green screen effect. Note that this isn't super fast, but is helpful
-// in understanding how the different image types & coordinate spaces work
-// together. If you need performance, you will probably want to do this with shaders!
-
-#include "ofApp.h"
+﻿#include "ofApp.h"
 
 using namespace std;
 using namespace ofxCv;
