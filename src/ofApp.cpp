@@ -32,10 +32,6 @@ void ofApp::setup() {
 	grainFbo.allocate(ofGetWindowWidth(), ofGetWindowHeight());
 	grainShader.load("shaders_gl3/grain");
 
-	// Load fonts
-	fontRegular.load("fonts/be-ag-light.ttf", Layout::FONT_SIZE);
-	fontBold.load("fonts/be-ag-medium.ttf", Layout::FONT_SIZE - 2);
-
 	// OSC setup
 	maxMSPNetworkManager = new MaxMSPNetworkManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
 
@@ -47,13 +43,13 @@ void ofApp::setup() {
 	contourFinder.setMaxAreaRadius(1000);
 	contourFinder.setThreshold(15);
 
-	// GUI setup	
-	guiVisible = false;
-	gui.setup();
-	gui.add(bodyContourPolygonFidelity.set("Contour #points", 200, 10, 1000));
-	gui.add(automaticShadowsEnabled.set("Auto Shadows", true));	
+	// Settings ofGui setup
+	parametersPanelVisible = false;
+	parametersPanel.setup();
+	parametersPanel.add(bodyContourPolygonFidelity.set("Contour #points", 200, 10, 1000));
+	parametersPanel.add(automaticShadowsEnabled.set("Auto Shadows", true));	
 
-	// Network GUI setup
+	// Network ofGui setup
 	peerConnectButton.addListener(this, &ofApp::peerConnectButtonPressed);
 
 	networkGui.setup();	
@@ -63,35 +59,6 @@ void ofApp::setup() {
 	networkGui.add(isLeftPlayer.set("Left Side", true));
 	networkGui.add(peerConnectButton.setup("Connect"));
 
-	// Sequencer UI
-	sequencerLeft = new Sequencer(Layout::FRAME_PADDING, Layout::FRAME_PADDING, 
-		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
-		Layout::FRAME_PADDING, 
-		Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
-
-	sequencerLeft->addSequencerStepForJoints({
-		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
-		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
-		JointType_HandRight, JointType_SpineBase,
-		JointType_AnkleLeft, JointType_AnkleRight,
-		JointType_SpineMid,
-		JointType_KneeLeft, JointType_KneeRight,
-	});
-
-	int srX = DEPTH_WIDTH - (Layout::FRAME_PADDING + Layout::SEQUENCER_ELEMENT_SIZE) * Layout::SEQUENCER_ROW_SIZE;
-	sequencerRight = new Sequencer(srX, Layout::FRAME_PADDING, 
-		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
-		Layout::FRAME_PADDING, 
-		Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
-	sequencerRight->addSequencerStepForJoints({
-		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
-		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
-		JointType_HandRight, JointType_SpineBase,
-		JointType_AnkleLeft, JointType_AnkleRight,
-		JointType_SpineMid,
-		JointType_KneeLeft, JointType_KneeRight,
-		});
-
 	// Network manager initialization
 	peerNetworkManager = NULL;
 	
@@ -99,6 +66,8 @@ void ofApp::setup() {
 	bodiesIntersectionPath = new ofPath();
 	bodiesIntersectionActive = false;
 	bodiesIntersectionStartTimestamp = 0;
+
+	// Interface manager setup
 }
 
 void ofApp::peerConnectButtonPressed() {
@@ -448,13 +417,43 @@ void ofApp::draw() {
 		grainShader.end();
 
 		// Draw GUI		
-		if (this->guiVisible) {
-			gui.draw();
+		if (this->parametersPanelVisible) {
+			parametersPanel.draw();
 			stringstream ss;
 			ss << "fps : " << ofGetFrameRate() << endl;
-			ofDrawBitmapStringHighlight(ss.str(), 20, ofGetWindowHeight() - 40);		
+			ofDrawBitmapStringHighlight(ss.str(), 20, ofGetWindowHeight() - 40);
 		}
 	}
+}
+
+void ofApp::drawInterface() {
+	int previewWidth = DEPTH_WIDTH;
+	int previewHeight = DEPTH_HEIGHT;
+
+	ofVec2f winSize = ofGetWindowSize();
+
+	ofPushStyle();
+	ofSetColor(Colors::BACKGROUND);
+	ofDrawRectangle(0, 0, winSize.x, winSize.y);
+	ofPopStyle();
+
+	ofPushMatrix();
+	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
+	ofScale(Layout::WINDOW_SCALE);
+
+	this->drawBackgroundContours();
+	this->drawBodyShadows();
+	this->drawTrackedBodies();
+	this->drawRemoteBodies();
+	this->drawBodiesIntersection();
+	this->drawSequencer();
+	this->drawBodyTrackedStatus();
+	this->drawFrequencyGradient();
+
+	ofPopMatrix();
+
+	this->drawRectangularFrame();
+	this->drawSystemStatus();
 }
 
 void ofApp::drawTrackedBodies() {
@@ -835,41 +834,11 @@ void ofApp::drawRectangularFrame() {
 	ofPopStyle();
 }
 
-void ofApp::drawInterface() {
-	int previewWidth = DEPTH_WIDTH;
-	int previewHeight = DEPTH_HEIGHT;
-
-	ofVec2f winSize = ofGetWindowSize();
-
-	ofPushStyle();
-	ofSetColor(Colors::BACKGROUND);
-	ofDrawRectangle(0, 0, winSize.x, winSize.y);
-	ofPopStyle();
-
-	ofPushMatrix();
-	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
-	ofScale(Layout::WINDOW_SCALE);
-
-	this->drawBackgroundContours();
-	this->drawBodyShadows();
-	this->drawTrackedBodies();
-	this->drawRemoteBodies();
-	this->drawBodiesIntersection();
-	this->drawSequencer();
-	this->drawBodyTrackedStatus();
-	this->drawFrequencyGradient();
-
-	ofPopMatrix();
-
-	this->drawRectangularFrame();
-	this->drawSystemStatus();
-}
-
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 	switch (key) {
 	case 'h':
-		this->guiVisible = !this->guiVisible;
+		this->parametersPanelVisible = !this->parametersPanelVisible;
 		break;
 	case 'a':
 		this->spawnBodyShadow();

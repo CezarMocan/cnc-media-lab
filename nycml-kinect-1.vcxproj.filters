@@ -7,19 +7,10 @@
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\BodyUtils.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\ofApp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\TrackedBody.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\TrackedJoint.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvColorImage.cpp">
@@ -151,9 +142,6 @@
     <ClCompile Include="..\..\..\addons\ofxOsc\libs\oscpack\src\osc\OscTypes.cpp">
       <Filter>addons\ofxOsc\libs\oscpack\src\osc</Filter>
     </ClCompile>
-    <ClCompile Include="src\ofxBlur.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxVoronoi\libs\Voro++2D\c_loops_2d.cpp">
       <Filter>addons\ofxVoronoi\libs\Voro++2D</Filter>
     </ClCompile>
@@ -187,23 +175,11 @@
     <ClCompile Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.cpp">
       <Filter>addons\ofxVoronoi\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\BodySoundPlayer.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\MidiNote.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\TrackedBodyRecording.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxClipper\libs\ofxClipper\src\Clipper.cpp">
       <Filter>addons\ofxClipper\libs\ofxClipper\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.cpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="src\MainFboManager.cpp">
-      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\Sequencer.cpp">
       <Filter>src\GUI</Filter>
@@ -216,6 +192,27 @@
     </ClCompile>
     <ClCompile Include="src\MaxMSPNetworkManager.cpp">
       <Filter>src\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BodyUtils.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BodySoundPlayer.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TrackedBody.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TrackedJoint.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MidiNote.cpp">
+      <Filter>src\Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TrackedBodyShadow.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="GUIManager.cpp">
+      <Filter>src\GUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -486,24 +483,21 @@
     <Filter Include="src\Network">
       <UniqueIdentifier>{31a61e46-60d5-4f01-ae9a-9820dd1919b9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Bodies">
+      <UniqueIdentifier>{a215b981-6adf-460a-88b9-1db6394fb77d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Sound">
+      <UniqueIdentifier>{fac3856f-4d69-41e7-81ce-6d7ab956a401}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ofApp.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\BodyUtils.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\Constants.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\ofApp.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\TrackedBody.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\TrackedJoint.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvBlob.h">
@@ -1532,9 +1526,6 @@
     <ClInclude Include="..\..\..\addons\ofxOsc\libs\oscpack\src\osc\OscTypes.h">
       <Filter>addons\ofxOsc\libs\oscpack\src\osc</Filter>
     </ClInclude>
-    <ClInclude Include="src\ofxBlur.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxVoronoi\libs\Voro++2D\c_loops_2d.h">
       <Filter>addons\ofxVoronoi\libs\Voro++2D</Filter>
     </ClInclude>
@@ -1577,15 +1568,6 @@
     <ClInclude Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.h">
       <Filter>addons\ofxVoronoi\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\BodySoundPlayer.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\MidiNote.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\TrackedBodyRecording.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxClipper\src\ofxClipper.h">
       <Filter>addons\ofxClipper\src</Filter>
     </ClInclude>
@@ -1594,9 +1576,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.hpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
-    </ClInclude>
-    <ClInclude Include="src\MainFboManager.h">
-      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\SequencerStep.h">
       <Filter>src\GUI</Filter>
@@ -1609,6 +1588,27 @@
     </ClInclude>
     <ClInclude Include="src\MaxMSPNetworkManager.h">
       <Filter>src\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BodyUtils.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BodySoundPlayer.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TrackedBody.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TrackedJoint.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MidiNote.h">
+      <Filter>src\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TrackedBodyShadow.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="GUIManager.h">
+      <Filter>src\GUI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

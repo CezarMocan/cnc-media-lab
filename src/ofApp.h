@@ -11,6 +11,7 @@
 #include "TrackedBodyShadow.h"
 #include "BodySoundPlayer.h"
 #include "ofxClipper.h"
+#include "GUIManager.h"
 #include "Sequencer.h"
 
 class ofApp : public ofBaseApp {
@@ -86,11 +87,14 @@ public:
 	//// Final shader pass, for applying grain on top of everything
 	ofShader grainShader;
 	ofFbo grainFbo;
-	ofMesh frequencyGradient;
 
-	//// Simple GUI for setting global parameters
-	bool guiVisible;
-	ofxPanel gui;
+	GUIManager* appGuiManager;
+
+	// ofMesh frequencyGradient;
+
+	//// Simple panel for setting global parameters
+	bool parametersPanelVisible;
+	ofxPanel parametersPanel;
 	ofParameter<int> bodyContourPolygonFidelity;
 	ofParameter<bool> isLeftPlayer;
 	ofParameter<bool> automaticShadowsEnabled;
@@ -103,24 +107,24 @@ public:
 	ofxButton peerConnectButton;
 
 	//// Sequencer GUI (squares at the top of the interface)
-	Sequencer* sequencerLeft;
-	Sequencer* sequencerRight;
-	void updateSequencer();
-	void drawSequencer();
+	// Sequencer* sequencerLeft;
+	// Sequencer* sequencerRight;
+	// void updateSequencer();
+	// void drawSequencer();
 
 	//// Body contour tracing backgrounds
-	pair<ofPath*, ofRectangle> leftBackgroundContour;
-	pair<ofPath*, ofRectangle> rightBackgroundContour;
-	void updateBackgroundContours();
-	void drawBackgroundContours();
+	// pair<ofPath*, ofRectangle> leftBackgroundContour;
+	// pair<ofPath*, ofRectangle> rightBackgroundContour;
+	// void updateBackgroundContours();
+	// void drawBackgroundContours();
 
 	//// Remaining GUI elements
-	void drawSystemStatus();
-	void drawBodyTrackedStatus();
-	void drawFrequencyGradient();
-	void drawRectangularFrame();
+	// void drawSystemStatus();
+	// void drawBodyTrackedStatus();
+	// void drawFrequencyGradient();
+	// void drawRectangularFrame();
 
 	//// Fonts
-	ofTrueTypeFont fontRegular;
-	ofTrueTypeFont fontBold;
+	// ofTrueTypeFont fontRegular;
+	// ofTrueTypeFont fontBold;
 };
