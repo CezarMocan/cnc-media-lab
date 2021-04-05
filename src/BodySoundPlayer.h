@@ -2,14 +2,13 @@
 
 #include "ofMain.h"
 #include "MidiNote.h"
-#include "MidiPlayer.h"
-#include "ofOSCManager.h"
+#include "MaxMSPNetworkManager.h"
 #include <algorithm>
 
 class BodySoundPlayer {
 public:
 	BodySoundPlayer(int index, int canvasWidth, int canvasHeight, vector<MidiNote*> scale);
-	void setOscManager(ofOSCManager* oscManager);
+	void setOscManager(MaxMSPNetworkManager* oscManager);
 	void setInterestPoints(vector<pair<JointType, ofVec2f> > points);
 	void update();
 	void draw();
@@ -26,7 +25,7 @@ private:
 	int index;
 	int canvasWidth, canvasHeight;
 	vector<MidiNote*> scale;
-	ofOSCManager* oscManager;
+	MaxMSPNetworkManager* oscManager;
 	void sendMidiSequenceOsc(int instrumentId);
 	float getDurationForIndex(int index);
 

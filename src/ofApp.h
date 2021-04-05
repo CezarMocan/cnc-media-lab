@@ -2,18 +2,16 @@
 
 #include "ofMain.h"
 #include "ofxKinectForWindows2.h"
-#include "ofOSCManager.h"
+#include "MaxMSPNetworkManager.h"
+#include "PeerNetworkManager.h"
 #include "ofxCv.h"
 #include "ofxGui.h"
 #include "Constants.h"
 #include "TrackedBody.h"
 #include "TrackedBodyRecording.h"
-#include "MidiPlayer.h"
 #include "BodySoundPlayer.h"
-#include "NetworkManager.h"
 #include "ofxClipper.h"
 #include "Sequencer.h"
-#include "MainFboManager.h"
 
 class ofApp : public ofBaseApp {
 
@@ -34,19 +32,18 @@ public:
 	void updateBackgrounds();
 	void drawBackgrounds();
 	
-	void drawTrackedBodies(int drawMode);
-	void drawRemoteBodies(int drawMode);
-	void drawTrackedBodyRecordings(int drawMode);
+	void drawTrackedBodies();
+	void drawRemoteBodies();
+	void drawTrackedBodyRecordings();
 
 	void drawSystemStatus();
 	void drawBodyTrackedStatus();
 	void drawFrequencyGradient();
 	void drawFrame();
 
-	void drawAlternate();
+	void drawInterface();
 
 	void resolveInstrumentConflicts();
-	void drawVoronoi();
 
 	void detectBodySkeletons();
 	void detectBodyContours();
@@ -60,8 +57,6 @@ public:
 	int getRemoteBodyIndex();
 	int getLeftBodyIndex();
 	int getRightBodyIndex();
-
-	bool isBorder(ofDefaultVec3 _pt);
 
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -78,18 +73,10 @@ public:
 	ofxKFW2::Device kinect;
 	ICoordinateMapper* coordinateMapper;
 
-	ofImage bodyIndexImg, foregroundImg;
-	vector<ofVec2f> colorCoords;
-	int numBodiesTracked;
-	bool bHaveAllStreams;
-
-	ofOSCManager* oscSoundManager;
+	MaxMSPNetworkManager* oscSoundManager;
 	map<int, TrackedBody*> trackedBodies;
 	map<int, TrackedBody*> remoteBodies;
 	vector<int> trackedBodyIds;
-
-	ofxVoronoi voronoi;
-	ofPolyline voronoiRandomPoints;
 
 	ofShader bodyIndexShader;
 	ofShader grainShader;
@@ -117,58 +104,13 @@ public:
 
 	ofParameter<bool> automaticShadows;
 
-	ofParameter<bool> localBodyDrawsGeometry;
-	ofParameter<bool> localBodyDrawsJoints;
-	ofParameter<bool> localBodyDrawsContour;
-	ofParameter<bool> localBodyDrawsFill;
-	ofParameter<bool> localBodyDrawsHLines;
-	ofParameter<bool> localBodyDrawsVLines;
-	ofParameter<bool> localBodyDrawsDots;
-	ofParameter<bool> localBodyDrawsGrid;	
-
-	ofParameter<bool> remoteBodyDrawsGeometry;
-	ofParameter<bool> remoteBodyDrawsJoints;	
-	ofParameter<bool> remoteBodyDrawsContour;
-	ofParameter<bool> remoteBodyDrawsFill;
-	ofParameter<bool> remoteBodyDrawsHLines;
-	ofParameter<bool> remoteBodyDrawsVLines;
-	ofParameter<bool> remoteBodyDrawsDots;
-	ofParameter<bool> remoteBodyDrawsGrid;
-
-	ofParameter<bool> recordedBodyDrawsGeometry;
-	ofParameter<bool> recordedBodyDrawsJoints;
-	ofParameter<bool> recordedBodyDrawsContour;
-	ofParameter<bool> recordedBodyDrawsFill;
-	ofParameter<bool> recordedBodyDrawsHLines;
-	ofParameter<bool> recordedBodyDrawsVLines;
-	ofParameter<bool> recordedBodyDrawsDots;
-	ofParameter<bool> recordedBodyDrawsGrid;
-
-
-	ofParameter<bool> useGaussian;
-	ofParameter<bool> useBlur;
-	ofParameter<bool> useErode;
-	ofParameter<bool> useDilate;
-
-	ofxPanel voronoiGui;
-	ofParameter<int> voronoiEnvironmentCells;
-	ofParameter<int> voronoiBodyCells;
-	ofParameter<bool> voronoiForceCellsInsideBody;
-	ofParameter<bool> voronoiFillMode;
-	ofParameter<bool> voronoiDrawCellCenters;	
-	ofParameter<int> voronoiBackgroundHue;
-	ofParameter<int> voronoiBodyHue;
-	ofParameter<float> voronoiSmoothing;
-	ofParameter<float> voronoiEnvironmentNoise;
-	ofParameter<bool> voronoiConnectCellCenters;
-
 	ofxPanel networkGui;	
 	ofParameter<string> peerIp;
 	ofParameter<string> peerPort;
 	ofParameter<string> localPort;
 	ofxButton peerConnectButton;
 	void peerConnectButtonPressed();
-	NetworkManager* networkManager;
+	PeerNetworkManager* networkManager;
 
 	ofx::Clipper clipper;
 
@@ -180,7 +122,7 @@ public:
 	void spawnBodyRecording();
 	void playBodyRecording(int index);
 	void clearBodyRecording(int index);
-	void manageBodyRecordings();
+	void manageBodyShadows();
 
 	vector<TrackedBodyRecording*> activeBodyRecordings;
 	vector<pair<int, pair<float, float> > > activeBodyRecordingsParams;

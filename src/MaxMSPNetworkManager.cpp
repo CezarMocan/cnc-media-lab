@@ -1,6 +1,6 @@
-#include "ofOSCManager.h"
+#include "MaxMSPNetworkManager.h"
 
-ofOSCManager::ofOSCManager(string host, int port, int receivePort)
+MaxMSPNetworkManager::MaxMSPNetworkManager(string host, int port, int receivePort)
 {
 	this->oscHost = host;
 	this->oscPort = port;
@@ -11,32 +11,32 @@ ofOSCManager::ofOSCManager(string host, int port, int receivePort)
 	ofLogNotice() << "OSC Sender sending to: " << host << ":" << port;
 }
 
-void ofOSCManager::setHost(string host) {
+void MaxMSPNetworkManager::setHost(string host) {
 	this->oscHost = host;
 	this->updateOscSender();
 }
 
-void ofOSCManager::setPort(int port) {
+void MaxMSPNetworkManager::setPort(int port) {
 	this->oscPort = port;
 	this->updateOscSender();
 }
 
-void ofOSCManager::setReceivePort(int receivePort)
+void MaxMSPNetworkManager::setReceivePort(int receivePort)
 {
 	this->oscReceivePort = receivePort;
 	this->updateOscReceiver();
 }
 
-void ofOSCManager::updateOscSender() {
+void MaxMSPNetworkManager::updateOscSender() {
 	this->oscSender.setup(this->oscHost, this->oscPort);
 }
 
-void ofOSCManager::updateOscReceiver()
+void MaxMSPNetworkManager::updateOscReceiver()
 {
 	this->oscReceiver.setup(this->oscReceivePort);
 }
 
-void ofOSCManager::update() {
+void MaxMSPNetworkManager::update() {
 	// Check for incoming messages from the peer
 	while (oscReceiver.hasWaitingMessages()) {
 		ofxOscMessage m;
@@ -51,12 +51,12 @@ void ofOSCManager::update() {
 	}
 }
 
-int ofOSCManager::getSequencerStep()
+int MaxMSPNetworkManager::getSequencerStep()
 {
 	return this->sequencerStep;
 }
 
-void ofOSCManager::sendStringMessageToAddress(string address, string message) {
+void MaxMSPNetworkManager::sendStringMessageToAddress(string address, string message) {
 	ofxOscMessage m;
 	m.setAddress(address);
 	m.addStringArg(message);
@@ -64,7 +64,7 @@ void ofOSCManager::sendStringMessageToAddress(string address, string message) {
 	ofLogNotice() << "Sending message: " << message << " to address: " << address;
 }
 
-void ofOSCManager::sendIntMessageToAddress(string address, int message) {
+void MaxMSPNetworkManager::sendIntMessageToAddress(string address, int message) {
 	ofxOscMessage m;
 	m.setAddress(address);
 	m.addInt32Arg(message);
@@ -72,7 +72,7 @@ void ofOSCManager::sendIntMessageToAddress(string address, int message) {
 	ofLogNotice() << "Sending message: " << message << " to address: " << address;
 }
 
-void ofOSCManager::sendFloatMessageToAddress(string address, float message) {
+void MaxMSPNetworkManager::sendFloatMessageToAddress(string address, float message) {
 	ofxOscMessage m;
 	m.setAddress(address);
 	m.addFloatArg(message);
@@ -80,18 +80,18 @@ void ofOSCManager::sendFloatMessageToAddress(string address, float message) {
 	ofLogNotice() << "Sending message: " << message << " to address: " << address;
 }
 
-void ofOSCManager::sendBodyMessage(int bodyId, string category, string parameter, int value)
+void MaxMSPNetworkManager::sendBodyMessage(int bodyId, string category, string parameter, int value)
 {
 	stringstream ss;
 	ss << "/" << bodyId << " /" << category << " /" << parameter << " " << value;
 	this->sendStringMessageToAddress(OscCategories::BODY, ss.str());
 }
 
-void ofOSCManager::sendEnvironmentMessage(string parameter, int value)
+void MaxMSPNetworkManager::sendEnvironmentMessage(string parameter, int value)
 {
 }
 
-void ofOSCManager::sendBodyMidiSequence(int bodyId, vector<int> midiSequence, vector<int> jointSequenceRaw)
+void MaxMSPNetworkManager::sendBodyMidiSequence(int bodyId, vector<int> midiSequence, vector<int> jointSequenceRaw)
 {
 	stringstream ss;
 	ss << "/" << bodyId;
@@ -108,28 +108,28 @@ void ofOSCManager::sendBodyMidiSequence(int bodyId, vector<int> midiSequence, ve
 	this->sendStringMessageToAddress(OscCategories::BODY_SEQUENCE_RAW, ss.str());
 }
 
-void ofOSCManager::sendIsRecording(int bodyId, bool isRecording)
+void MaxMSPNetworkManager::sendIsRecording(int bodyId, bool isRecording)
 {
 	stringstream ss;
 	ss << "/" << bodyId << " " << (int)isRecording;
 	this->sendStringMessageToAddress(OscCategories::BODY_IS_RECORDING, ss.str());
 }
 
-void ofOSCManager::sendBodyIntersection(float area, int noPolys, float duration)
+void MaxMSPNetworkManager::sendBodyIntersection(float area, int noPolys, float duration)
 {
 	stringstream ss;
 	ss << area << " " << noPolys << " " << duration;
 	this->sendStringMessageToAddress(OscCategories::BODY_INTERSECTION, ss.str());
 }
 
-void ofOSCManager::sendNewBody(int bodyId)
+void MaxMSPNetworkManager::sendNewBody(int bodyId)
 {
 	stringstream ss;
 	ss << bodyId;
 	this->sendStringMessageToAddress(OscCategories::NEW_BODY, ss.str());
 }
 
-void ofOSCManager::sendAllData()
+void MaxMSPNetworkManager::sendAllData()
 {
 	int time = ofGetSystemTimeMillis();
 	if (time - this->lastMessageTimestamp < this->MESSAGE_INTERVAL_MS) {
@@ -141,6 +141,6 @@ void ofOSCManager::sendAllData()
 
 }
 
-void ofOSCManager::sendHandDistanceData()
+void MaxMSPNetworkManager::sendHandDistanceData()
 {
 }

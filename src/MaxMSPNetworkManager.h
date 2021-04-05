@@ -6,10 +6,10 @@
 
 using namespace std;
 
-class ofOSCManager
+class MaxMSPNetworkManager
 {
 public: 
-	ofOSCManager(string host, int port, int receivePort);
+	MaxMSPNetworkManager(string host, int port, int receivePort);
 	void setHost(string host);
 	void setPort(int port);
 	void setReceivePort(int receivePort);

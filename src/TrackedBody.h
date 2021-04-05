@@ -1,12 +1,11 @@
 #pragma once
 #include "ofxKinectForWindows2.h"
 #include "ofMain.h"
-#include "ofxBlur.h"
 #include "ofxCv.h"
 #include "TrackedJoint.h"
 #include "BodyUtils.h"
 #include "Constants.h"
-#include "ofOSCManager.h"
+#include "MaxMSPNetworkManager.h"
 #include "ofxVoronoi.h"
 #include "BodySoundPlayer.h"
 #include "MainFboManager.h"
@@ -35,9 +34,11 @@ public:
 	static void initialize();
 
 	TrackedBody(int index, float smoothingFactor, int contourPoints = 150, int noDelayedContours = 20, bool isRemote = false);
-	void setOSCManager(ofOSCManager* m);
+
+	void setOSCManager(MaxMSPNetworkManager* m);
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
-	void setTracked(bool isTracked);
+
+	void setIsTracked(bool isTracked);
 	void setContourPoints(int contourPoints);
 
 	void setIsRecording(bool isRecording);
@@ -47,37 +48,24 @@ public:
 	virtual void updateContourData(vector<ofPolyline> contours);
 	void updateDelayedContours();
 	void updateSkeletonContourDataFromSerialized(string s);
-	void setDrawMode(int drawMode);
 
 	float getJointsDistance(JointType a, JointType b);
 	float getNormalizedJointsDistance(JointType a, JointType b);
-	float getNormalizedArea();
-	float getJointsAngle(JointType a, JointType b, JointType c);
 	float getJointSpeed(JointType a);
 	float getJointNormalizedSpeed(JointType a);
 	ofVec2f getJointPosition(JointType a);
 	float getScreenRatio();
 
-	pair<ofPath*, ofRectangle> getContourSegment(int start, int amount);
-
-	ofPolyline getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody);
-
+	pair<ofPath*, ofRectangle> getContourSegment(int start, int amount);	
 	vector<pair<JointType, ofVec2f> > getInterestPoints();
 	
 	virtual void update();
-	void drawJointLine(JointType a, JointType b);
-	void drawJointPolygon(vector<JointType> v);
-	void drawJointArc(JointType a, JointType b, JointType c);
-	void drawMovement();
-	void drawJoints();
 	void drawContours();
-	void drawSoundPlayer();
 	void drawRaster();
 	void drawHLines();
 	void drawVLines();
 	void drawDots();
 	void drawGrid();	
-
 	virtual void draw();
 
 	void assignInstrument();
@@ -122,7 +110,7 @@ protected:
 	bool isRecording;
 	bool isRemote;
 	ofColor generalColor;
-	ofOSCManager* oscManager;
+	MaxMSPNetworkManager* oscManager;
 
 	BodySoundPlayer* bodySoundPlayer;
 
@@ -135,7 +123,6 @@ protected:
 
 	ofFbo mainFbo;
 	ofFbo polyFbo;
-	ofxBlur blurShader;
 	ofShader speedShader;
 	ofShader vlinesShader;
 	ofShader hlinesShader;

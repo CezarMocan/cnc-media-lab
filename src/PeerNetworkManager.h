@@ -9,11 +9,9 @@
 
 using namespace std;
 
-class NetworkManager {
+class PeerNetworkManager {
 public:
-	NetworkManager(string remoteIp, int remotePort, int localPort);
-	bool isServer();
-	bool isClient();
+	PeerNetworkManager(string remoteIp, int remotePort, int localPort);
 	
 	void update();
 

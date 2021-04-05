@@ -1,7 +1,7 @@
 #include "assert.h"
-#include "NetworkManager.h"
+#include "PeerNetworkManager.h"
 
-NetworkManager::NetworkManager(string remoteIp, int remotePort, int localPort)
+PeerNetworkManager::PeerNetworkManager(string remoteIp, int remotePort, int localPort)
 {
 	this->remoteIp = remoteIp;
 	this->remotePort = remotePort;
@@ -13,7 +13,7 @@ NetworkManager::NetworkManager(string remoteIp, int remotePort, int localPort)
 	this->oscReceiver.setup(this->localPort);
 }
 
-void NetworkManager::update() 
+void PeerNetworkManager::update() 
 {	
 	// Check for incoming messages from the peer
 	while (oscReceiver.hasWaitingMessages()) {
@@ -44,7 +44,7 @@ void NetworkManager::update()
 
 }
 
-void NetworkManager::sendBodyData(int index, string data)
+void PeerNetworkManager::sendBodyData(int index, string data)
 {
 	ofxOscMessage m;
 	m.setAddress(OscCategories::REMOTE_BODY_DATA);
@@ -53,7 +53,7 @@ void NetworkManager::sendBodyData(int index, string data)
 	this->oscSender.sendMessage(m);
 }
 
-string NetworkManager::getBodyData(int index)
+string PeerNetworkManager::getBodyData(int index)
 {
 	if (this->serializedData.find(index) == this->serializedData.end()) {
 		return "";
@@ -63,18 +63,18 @@ string NetworkManager::getBodyData(int index)
 	}
 }
 
-bool NetworkManager::isBodyActive(int index)
+bool PeerNetworkManager::isBodyActive(int index)
 {
 	if (this->dataTimestamps.find(index) == this->dataTimestamps.end())
 		return false;
 	return (ofGetSystemTimeMillis() - this->dataTimestamps[index] < Constants::NETWORK_TRAFFIC_MAX_LATENCY_MS);
 }
 
-bool NetworkManager::isConnected() {
+bool PeerNetworkManager::isConnected() {
 	return (ofGetSystemTimeMillis() - this->latestTimestamp < Constants::NETWORK_TRAFFIC_MAX_LATENCY_MS);
 }
 
-string NetworkManager::getLatency() {
+string PeerNetworkManager::getLatency() {
 	if (!this->isConnected()) return "N/A";
 	stringstream ss;
 	ss << ((int)this->displayLatency) << "ms";

@@ -12,10 +12,11 @@ using namespace Constants;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	// Kinect setup
+	// Window setup
 	int windowWidth = 2 * DEPTH_WIDTH;
 	ofSetWindowShape(windowWidth + 2 * Layout::WINDOW_PADDING, windowWidth * 3 / 4 + Layout::WINDOW_PADDING);
 
+	// Kinect setup
 	kinect.open();
 	kinect.initDepthSource();
 	kinect.initColorSource();
@@ -26,34 +27,20 @@ void ofApp::setup() {
 	if (kinect.getSensor()->get_CoordinateMapper(&coordinateMapper) < 0) {
 		ofLogError() << "Could not acquire CoordinateMapper!";
 	}
-
-	numBodiesTracked = 0;
-	bHaveAllStreams = false;
-
-	bodyIndexImg.allocate(DEPTH_WIDTH, DEPTH_HEIGHT, OF_IMAGE_COLOR);
-	foregroundImg.allocate(DEPTH_WIDTH, DEPTH_HEIGHT, OF_IMAGE_COLOR);
-
-	colorCoords.resize(DEPTH_WIDTH * DEPTH_HEIGHT);
 	
-	remoteIntersectionActive = false;
-	remoteIntersectionStartTimestamp = 0;
-
 	// Load shaders
 	bodyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	bodyDebugFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	bodyIndexShader.load("shaders_gl3/bodyIndex");
-
-	MainFboManager::initialize();
 	grainFbo.allocate(ofGetWindowWidth(), ofGetWindowHeight());
 	grainShader.load("shaders_gl3/grain");
-	MainFboManager::setMainFbo(&grainFbo);
 
 	// Load fonts
 	fontRegular.load("fonts/be-ag-light.ttf", Layout::FONT_SIZE);
 	fontBold.load("fonts/be-ag-medium.ttf", Layout::FONT_SIZE - 2);
 
 	// OSC setup
-	this->oscSoundManager = new ofOSCManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
+	oscSoundManager = new MaxMSPNetworkManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
 
 	// Tracked bodies initialize
 	TrackedBody::initialize();
@@ -64,32 +51,28 @@ void ofApp::setup() {
 	contourFinder.setThreshold(15);
 
 	// GUI setup	
-	this->guiVisible = false;
+	guiVisible = false;
 	gui.setup();
 	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
 	gui.add(automaticShadows.set("Auto Shadows", true));	
-
-	MidiPlayer::loadSoundFonts();
 
 	// Network GUI setup
 	peerConnectButton.addListener(this, &ofApp::peerConnectButtonPressed);
 
 	networkGui.setup();	
-
 	networkGui.add(peerIp.set("Peer IP", Constants::CEZAR_IP));
 	networkGui.add(peerPort.set("Peer Port", "12346"));
 	networkGui.add(localPort.set("Local Port", "12347"));
 	networkGui.add(isLeft.set("Left Side", true));
 	networkGui.add(peerConnectButton.setup("Connect"));
 
-	this->networkManager = NULL;
-
 	// Sequencer UI
-	this->sequencerLeft = new Sequencer(Layout::FRAME_PADDING, Layout::FRAME_PADDING, 
+	sequencerLeft = new Sequencer(Layout::FRAME_PADDING, Layout::FRAME_PADDING, 
 		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
 		Layout::FRAME_PADDING, 
 		Colors::BLUE, Colors::BLUE_ACCENT, Colors::YELLOW);
-	this->sequencerLeft->addSequencerStepForJoints({
+
+	sequencerLeft->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft, 
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight, 
 		JointType_HandRight, JointType_SpineBase,
@@ -99,12 +82,11 @@ void ofApp::setup() {
 	});
 
 	int srX = DEPTH_WIDTH - (Layout::FRAME_PADDING + Layout::SEQUENCER_ELEMENT_SIZE) * Layout::SEQUENCER_ROW_SIZE;
-	// DEPTH_WIDTH / 2 + 74
-	this->sequencerRight = new Sequencer(srX, Layout::FRAME_PADDING, 
+	sequencerRight = new Sequencer(srX, Layout::FRAME_PADDING, 
 		Layout::SEQUENCER_ROW_SIZE, Layout::SEQUENCER_ELEMENT_SIZE, 
 		Layout::FRAME_PADDING, 
 		Colors::RED, Colors::RED_ACCENT, Colors::YELLOW);
-	this->sequencerRight->addSequencerStepForJoints({
+	sequencerRight->addSequencerStepForJoints({
 		JointType_HandLeft, JointType_ElbowLeft, JointType_ShoulderLeft,
 		JointType_Head, JointType_ShoulderRight, JointType_ElbowRight,
 		JointType_HandRight, JointType_SpineBase,
@@ -113,11 +95,17 @@ void ofApp::setup() {
 		JointType_KneeLeft, JointType_KneeRight,
 		});
 
-	this->intersectionPath = new ofPath();
+	// Network manager initialization
+	networkManager = NULL;
+	
+	// Remote bodies intersection setup
+	intersectionPath = new ofPath();
+	remoteIntersectionActive = false;
+	remoteIntersectionStartTimestamp = 0;
 }
 
 void ofApp::peerConnectButtonPressed() {
-	this->networkManager = new NetworkManager(this->peerIp.get(), atoi(this->peerPort.get().c_str()), atoi(this->localPort.get().c_str()));
+	this->networkManager = new PeerNetworkManager(this->peerIp.get(), atoi(this->peerPort.get().c_str()), atoi(this->localPort.get().c_str()));
 }
 
 //--------------------------------------------------------------
@@ -125,7 +113,7 @@ void ofApp::update() {
 	if (this->networkManager == NULL) {
 		return;
 	}	
-	kinect.update();
+	this->kinect.update();
 
 	this->detectBodySkeletons();
 	this->detectBodyContours();
@@ -142,7 +130,7 @@ void ofApp::update() {
 		// Send sound data to MaxMSP
 		this->trackedBodies[bodyId]->sendOSCData();
 		
-		// Send serialized body data over the network
+		// Send serialized body data over the network (every 3 frames seems enough)
 		string data = this->trackedBodies[bodyId]->serialize();
 		if (ofGetFrameNum() % 3 == 0)
 			this->networkManager->sendBodyData(bodyId, data);
@@ -150,7 +138,7 @@ void ofApp::update() {
 
 	// Update each recording and send data over OSC to MaxMSP and the peer
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-		TrackedBodyRecording* rec = *it;		
+		TrackedBodyRecording* rec = *it;
 		rec->update();
 
 		if (rec->getIsPlaying()) {
@@ -168,7 +156,7 @@ void ofApp::update() {
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) {
 			if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
-				this->remoteBodies[bodyId]->setTracked(false);
+				this->remoteBodies[bodyId]->setIsTracked(false);
 				this->remoteBodies.erase(bodyId);
 			}
 		}
@@ -178,7 +166,7 @@ void ofApp::update() {
 			if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
 				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2, true);
 				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
-				this->remoteBodies[bodyId]->setTracked(true);
+				this->remoteBodies[bodyId]->setIsTracked(true);
 				this->oscSoundManager->sendNewBody(this->remoteBodies[bodyId]->getInstrumentId());
 			}
 			this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
@@ -187,7 +175,7 @@ void ofApp::update() {
 		}
 	}
 
-	this->manageBodyRecordings();
+	this->manageBodyShadows();
 	this->resolveInstrumentConflicts();
 	this->updateBackgrounds();
 	this->updateSequencer();
@@ -197,8 +185,10 @@ void ofApp::update() {
 void ofApp::resolveInstrumentConflicts() {
 	// If left body and right body are on the same instrument, reassign instrument to left body
 	if (!this->isLeft.get()) return;
+
 	TrackedBody* rightBody = this->getRightBody();
 	TrackedBody* leftBody = this->getLeftBody();
+
 	if (leftBody == NULL || rightBody == NULL) return;
 
 	if (leftBody->getInstrumentId() == rightBody->getInstrumentId()) {
@@ -221,7 +211,7 @@ void ofApp::detectBodySkeletons()
 			if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
 				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2, false);
 				this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
-				this->trackedBodies[body.bodyId]->setTracked(true);
+				this->trackedBodies[body.bodyId]->setIsTracked(true);
 
 				this->oscSoundManager->sendNewBody(this->trackedBodies[body.bodyId]->getInstrumentId());
 			}
@@ -234,7 +224,7 @@ void ofApp::detectBodySkeletons()
 			for (auto it = oldTrackedBodyIds.begin(); it != oldTrackedBodyIds.end(); ++it) {
 				int index = *it;
 				if (index == body.bodyId) {
-					this->trackedBodies[index]->setTracked(false);
+					this->trackedBodies[index]->setIsTracked(false);
 					this->trackedBodies.erase(index);
 				}
 			}
@@ -248,7 +238,6 @@ void ofApp::detectBodySkeletons()
 
 		int trackedBodyId = rec->getTrackedBodyIndex();
 
-		// TODO (cez): This only applies to recordings of local bodies. Need to do the same for remote.
 		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
 			rec->stopRecording();
 		}
@@ -267,23 +256,6 @@ void ofApp::detectBodyContours() {
 	// Split up the tracked bodies onto different textures
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
-		/*
-		bodyFbo.begin();
-		ofClear(0, 0, 0, 255);
-		bodyIndexShader.begin();
-		bodyIndexShader.setUniformTexture("uBodyIndexTex", kinect.getBodyIndexSource()->getTexture(), 1);
-		bodyIndexShader.setUniform1f("uBodyIndexToExtract", bodyId);
-		kinect.getBodyIndexSource()->draw(0, 0, previewWidth, previewHeight);
-		bodyIndexShader.end();
-		bodyFbo.end();
-
-
-		bodyFbo.getTexture().readToPixels(bodyPixels);
-		bodyImage.setFromPixels(bodyPixels);
-		bodyImage.update();
-		*/
-
-		//contourFinder.findContours(bodyImage);
 		contourFinder.setUseTargetColor(true);
 		contourFinder.setTargetColor(ofColor(bodyId));
 		contourFinder.setThreshold(0);
@@ -291,8 +263,6 @@ void ofApp::detectBodyContours() {
 		
 		TrackedBody* currentBody = this->trackedBodies[bodyId];
 		currentBody->updateContourData(contourFinder.getPolylines());
-
-		//ofLogNotice() << (t2 - t1) << " " << (t3 - t2) << " " << (t4 - t3) << " " << (t5 - t4) << " " << (t6 - t5) << " " << (t7 - t6);		
 	}
 
 	// Update data for recordings
@@ -309,7 +279,6 @@ void ofApp::detectBodyContours() {
 		else {
 			TrackedBody* body = this->trackedBodies[trackedBodyId];
 			rec->updateContourData({ body->rawContour });
-			//rec->updateTextureData(body->texture);
 		}
 	}
 }
@@ -341,10 +310,7 @@ TrackedBody* ofApp::getRemoteBody()
 
 TrackedBody* ofApp::getLeftBody()
 {
-	// Cy is on the left, Cezar is on the right
 	if (this->isLeft.get()) {
-	//if (this->peerIp.get().compare(Constants::CEZAR_IP)) {
-		// Means that we're on Cy's computer
 		return this->getLocalBody();
 	}
 	else {
@@ -354,9 +320,6 @@ TrackedBody* ofApp::getLeftBody()
 
 TrackedBody* ofApp::getRightBody()
 {
-	// Cy is on the left, Cezar is on the right
-	//if (this->peerIp.get().compare(Constants::CEZAR_IP)) {
-		// Means that we're on Cy's computer
 	if (this->isLeft.get()) {
 		return this->getRemoteBody();
 	}
@@ -410,7 +373,7 @@ void ofApp::spawnBodyRecording()
 
 	rec->setTrackedBodyIndex(bodyId);
 	rec->setOSCManager(this->oscSoundManager);
-	rec->setTracked(true);
+	rec->setIsTracked(true);
 	rec->setIsRecording(true);
 	rec->assignInstrument(instrumentId);
 
@@ -438,11 +401,11 @@ void ofApp::playBodyRecording(int index)
 	this->oscSoundManager->sendNewBody(rec->getInstrumentId());
 }
 
-void ofApp::manageBodyRecordings()
+void ofApp::manageBodyShadows()
 {
 	if (!this->automaticShadows.get()) return;
 
-	// Spawn if random is good
+	// Spawn shadow if random is good
 	int spawnRand = (int) ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
 	if (spawnRand == 2 && this->activeBodyRecordings.size() < 2) {
 		bool isRecording = false;
@@ -452,7 +415,7 @@ void ofApp::manageBodyRecordings()
 	}
 
 	vector<int> indicesToRemove;
-	// Manage existing ones
+	// Manage existing shadows
 	int currentTime = ofGetSystemTimeMillis();
 	for (int index = 0; index < this->activeBodyRecordings.size(); index++) {
 		TrackedBodyRecording* rec = this->activeBodyRecordings[index];
@@ -480,10 +443,9 @@ void ofApp::draw() {
 		this->networkGui.draw();
 	else {
 		ofClear(0, 0, 0, 255);
-		//this->drawDebug();
 		grainFbo.begin();
 		ofClear(0, 0, 0, 255);
-		this->drawAlternate();
+		this->drawInterface();
 		grainFbo.end();
 
 		grainShader.begin();
@@ -500,52 +462,31 @@ void ofApp::draw() {
 	}
 }
 
-void ofApp::drawTrackedBodies(int drawMode) {
+void ofApp::drawTrackedBodies() {
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
 		TrackedBody* body = this->trackedBodies[bodyId];
-		body->setDrawMode(drawMode);
 		body->draw();
 	}
 }
 
-void ofApp::drawRemoteBodies(int drawMode) {
+void ofApp::drawRemoteBodies() {
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->networkManager->isBodyActive(bodyId)) continue;
 
-		int remoteDrawMode;
-		
 		TrackedBody* body = this->remoteBodies[bodyId];
-
 		if (body->getIsRecording()) {
-			remoteDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
-				(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-				(recordedBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
-				(recordedBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
-				(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
-				(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
-				(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
 			if (this->getLeftBody() == this->getRemoteBody()) {
 				body->setGeneralColor(Colors::BLUE_SHADOW);
 			} else {
 				body->setGeneralColor(Colors::RED_SHADOW);
 			}
 		}
-		else {
-			remoteDrawMode = (remoteBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
-				(remoteBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-				(remoteBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
-				(remoteBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
-				(remoteBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
-				(remoteBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
-				(remoteBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
-		}
-		body->setDrawMode(remoteDrawMode);
 		body->draw();
 	}
 }
 
-void ofApp::drawTrackedBodyRecordings(int drawMode) {
+void ofApp::drawTrackedBodyRecordings() {
 	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
 		TrackedBodyRecording* rec = *it;
 		if (this->getLocalBody() == this->getLeftBody()) {
@@ -553,7 +494,6 @@ void ofApp::drawTrackedBodyRecordings(int drawMode) {
 		} else if (this->getLocalBody() == this->getRightBody()) {
 			rec->setGeneralColor(Colors::RED_SHADOW);
 		}
-		rec->setDrawMode(drawMode);
 		rec->draw();
 	}
 }
@@ -651,7 +591,6 @@ void ofApp::updateBackgrounds() {
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
 		this->rightCtr = rightBody->getContourSegment(pathStart, noPoints);
-
 		this->rightCtr.first->translate(glm::vec2(-this->rightCtr.second.x, -this->rightCtr.second.y));
 		this->rightCtr.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightCtr.second.width, ((winSize.y - 2 * padding.y) / this->rightCtr.second.height));
 		this->rightCtr.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
@@ -844,7 +783,6 @@ void ofApp::drawFrequencyGradient() {
 	ofPopMatrix();
 
 	// Frequency indicator for left body
-
 	int indicatorPadding = 4;
 	int indicatorHeight = Layout::SEQUENCER_ELEMENT_SIZE - 2 * indicatorPadding;
 	int indicatorWidth = indicatorHeight / 2;
@@ -867,6 +805,7 @@ void ofApp::drawFrequencyGradient() {
 		}
 	}
 
+	// Frequency indicator for right body
 	TrackedBody* rightBody = this->getRightBody();
 	if (rightBody != NULL) {
 		vector<float> freqs = rightBody->getCurrentlyPlaying16Frequencies();
@@ -901,7 +840,7 @@ void ofApp::drawFrame() {
 	ofPopStyle();
 }
 
-void ofApp::drawAlternate() {
+void ofApp::drawInterface() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
 
@@ -923,32 +862,11 @@ void ofApp::drawAlternate() {
 	TrackedBody* rightBody = this->getRightBody();
 	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
 
-	int recordedDrawMode = (recordedBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
-		(recordedBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-		(recordedBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
-		(recordedBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
-		(recordedBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
-		(recordedBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
-		(recordedBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
-
-	this->drawTrackedBodyRecordings(recordedDrawMode);
-
-	int localDrawMode = (localBodyDrawsContour.get() ? BDRAW_MODE_CONTOUR : 0) |
-		(localBodyDrawsFill.get() ? BDRAW_MODE_RASTER : 0) |
-		(localBodyDrawsHLines.get() ? BDRAW_MODE_HLINES : 0) |
-		(localBodyDrawsVLines.get() ? BDRAW_MODE_VLINES : 0) |
-		(localBodyDrawsGrid.get() ? BDRAW_MODE_GRID : 0) |
-		(localBodyDrawsDots.get() ? BDRAW_MODE_DOTS : 0) |
-		(localBodyDrawsJoints.get() ? BDRAW_MODE_MOVEMENT : 0);
-
-	this->drawTrackedBodies(localDrawMode);
-
-	this->drawRemoteBodies(0);
-
+	this->drawTrackedBodyRecordings();
+	this->drawTrackedBodies();
+	this->drawRemoteBodies();
 	this->drawIntersection();
-
-	this->drawSequencer();
-	
+	this->drawSequencer();	
 	this->drawBodyTrackedStatus();
 	this->drawFrequencyGradient();
 
@@ -956,103 +874,6 @@ void ofApp::drawAlternate() {
 
 	this->drawFrame();
 	this->drawSystemStatus();
-}
-
-bool ofApp::isBorder(ofDefaultVec3 _pt) {
-	ofRectangle bounds = this->voronoi.getBounds();
-
-	return (_pt.x == bounds.x || _pt.x == bounds.x + bounds.width
-		|| _pt.y == bounds.y || _pt.y == bounds.y + bounds.height);
-}
-
-void ofApp::drawVoronoi() {
-	ofRectangle bbox;
-	ofPolyline allPoints;
-	ofPushStyle();
-	ofSetColor(ofColor(248, 247, 232));
-	ofFill();
-	ofRect(ofRectangle(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT));
-
-	// Set up random cells in the environment
-	if (this->voronoiEnvironmentCells.get() != this->voronoiRandomPoints.size()) {
-		this->voronoiRandomPoints.clear();
-		for (int i = 0; i < this->voronoiEnvironmentCells.get(); i++) {
-			this->voronoiRandomPoints.addVertex(ofRandom(DEPTH_WIDTH), ofRandom(DEPTH_HEIGHT));
-		}
-	}
-	else {
-		for (int i = 0; i < this->voronoiRandomPoints.size(); i++) {
-			//this->voronoiRandomPoints.getVertices()[i].x += ofRandom(voronoiEnvironmentNoise.get()) - voronoiEnvironmentNoise.get() / 2;
-			//this->voronoiRandomPoints.getVertices()[i].y += ofRandom(voronoiEnvironmentNoise.get()) - voronoiEnvironmentNoise.get() / 2;
-		}
-	}
-
-	allPoints.addVertices(this->voronoiRandomPoints.getVertices());
-
-	// Add points from bodies
-	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
-		const int bodyId = this->trackedBodyIds[i];
-		TrackedBody* body = this->trackedBodies[bodyId];
-		ofPolyline p = body->getVoronoiPolyline(voronoiBodyCells.get(), voronoiForceCellsInsideBody.get());
-		allPoints.addVertices(p.getVertices());
-		bbox = p.getBoundingBox();
-	}
-
-	bbox.y = 0;
-	bbox.height = DEPTH_HEIGHT;
-
-	//this->voronoi.setBounds(bbox);
-	this->voronoi.setBounds(ofRectangle(0, 0, DEPTH_WIDTH, DEPTH_HEIGHT));
-	this->voronoi.setPoints(allPoints.getVertices());
-	this->voronoi.generate();
-	//this->voronoi.draw();	
-	vector<ofxVoronoiCell> cells = voronoi.getCells();
-	for (int i = 0; i < cells.size(); i++) {
-		ofSetColor(0);
-		ofNoFill();
-		ofMesh mesh;
-		ofPolyline pl;
-		if (this->voronoiFillMode.get())
-			mesh.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
-		//mesh.setMode(OF_PRIMITIVE_LINE_LOOP);
-		//mesh.addVertices(cells[i].points);
-		//ofSetColor(120);
-		//mesh.draw();
-
-		//mesh.clear();		
-
-		for (int j = 0; j < cells[i].points.size(); j++) {
-			//if (!this->isBorder(cells[i].points[j]))
-			if (this->voronoiFillMode.get()) {
-				mesh.addVertex(cells[i].points[j]);
-			}
-			else {
-				if (this->voronoiConnectCellCenters.get())
-					pl.addVertex(cells[i].centroid);
-				pl.addVertex(cells[i].points[j]);
-			}
-		}
-		pl.close();
-		//ofSetColor(30);
-		//ofSetColor(ofColor::fromHsb(255. * i / cells.size(), 255, 128. * i / cells.size() + 128));
-		if (i < this->voronoiRandomPoints.size())
-			ofSetColor(ofColor::fromHsb(voronoiBackgroundHue.get(), 255, 10 * (i % 4) + 128));
-		else
-			ofSetColor(ofColor::fromHsb(voronoiBodyHue.get(), 255, 5 * (i % 4) + 128));
-
-		if (this->voronoiFillMode.get())
-			mesh.draw();
-		else
-			pl.getSmoothed(this->voronoiSmoothing.get()).draw();
-		// Draw cell points
-		if (this->voronoiDrawCellCenters.get()) {
-			ofSetColor(40);
-			ofFill();
-			ofDrawCircle(cells[i].centroid, 1);
-		}
-	}
-
-	ofPopStyle();
 }
 
 //--------------------------------------------------------------

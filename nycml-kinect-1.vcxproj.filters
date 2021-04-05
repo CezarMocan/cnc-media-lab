@@ -16,9 +16,6 @@
     <ClCompile Include="src\ofApp.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\ofOSCManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\TrackedBody.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -190,9 +187,6 @@
     <ClCompile Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.cpp">
       <Filter>addons\ofxVoronoi\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\MidiPlayer.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\BodySoundPlayer.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -202,23 +196,26 @@
     <ClCompile Include="src\TrackedBodyRecording.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\NetworkManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxClipper\libs\ofxClipper\src\Clipper.cpp">
       <Filter>addons\ofxClipper\libs\ofxClipper\src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.cpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
     </ClCompile>
-    <ClCompile Include="src\SequencerStep.cpp">
+    <ClCompile Include="src\MainFboManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\Sequencer.cpp">
-      <Filter>src</Filter>
+      <Filter>src\GUI</Filter>
     </ClCompile>
-    <ClCompile Include="src\MainFboManager.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="src\SequencerStep.cpp">
+      <Filter>src\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PeerNetworkManager.cpp">
+      <Filter>src\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MaxMSPNetworkManager.cpp">
+      <Filter>src\Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -483,6 +480,12 @@
     <Filter Include="addons\ofxClipper\libs\ofxClipper\include\ofx">
       <UniqueIdentifier>{14be7858-142b-47b1-93b7-aa7f74f8da52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\GUI">
+      <UniqueIdentifier>{c1664f0e-0af0-4ae0-bf1c-b3c07134d864}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Network">
+      <UniqueIdentifier>{31a61e46-60d5-4f01-ae9a-9820dd1919b9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ofApp.h">
@@ -495,9 +498,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\ofApp.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ofOSCManager.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\TrackedBody.h">
@@ -1577,9 +1577,6 @@
     <ClInclude Include="..\..\..\addons\ofxVoronoi\src\ofxVoronoi.h">
       <Filter>addons\ofxVoronoi\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\MidiPlayer.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\BodySoundPlayer.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -1587,9 +1584,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\TrackedBodyRecording.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\NetworkManager.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxClipper\src\ofxClipper.h">
@@ -1601,14 +1595,20 @@
     <ClInclude Include="..\..\..\addons\ofxClipper\libs\clipper\src\cpp\clipperlib.hpp">
       <Filter>addons\ofxClipper\libs\clipper\src\cpp</Filter>
     </ClInclude>
-    <ClInclude Include="src\SequencerStep.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Sequencer.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\MainFboManager.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SequencerStep.h">
+      <Filter>src\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Sequencer.h">
+      <Filter>src\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PeerNetworkManager.h">
+      <Filter>src\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MaxMSPNetworkManager.h">
+      <Filter>src\Network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

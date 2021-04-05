@@ -15,7 +15,7 @@ BodySoundPlayer::BodySoundPlayer(int index, int canvasWidth, int canvasHeight, v
 	this->currentlyPlaying16Frequencies.clear();
 }
 
-void BodySoundPlayer::setOscManager(ofOSCManager* oscManager)
+void BodySoundPlayer::setOscManager(MaxMSPNetworkManager* oscManager)
 {
 	this->oscManager = oscManager;
 }
@@ -119,7 +119,6 @@ void BodySoundPlayer::draw()
 
 	ofPushStyle();
 	ofPushMatrix();
-	//ofScale(2.0);
 	ofSetColor(200, 59, 25);
 	ofFill();
 	if (this->currentNoteIndex < this->iP.size())
@@ -148,7 +147,6 @@ float BodySoundPlayer::getDurationForIndex(int index) {
 	else
 		durations = { 700, 700, 700, 1000, 1000 };
 	return durations[index % durations.size()] * 1.;
-	//return 350 * (floor(ofRandom(2)) + 1);
 }
 
 MidiNote* BodySoundPlayer::pointToMidi(ofVec2f point)
@@ -158,11 +156,8 @@ MidiNote* BodySoundPlayer::pointToMidi(ofVec2f point)
 
 	int x = (int)point.x;
 	int y = (int)point.y;
-	
-	//float divisionSize = (1.0 * height) / (1.0 * this->scale.size());
 	float divisionSize = (1.0 * width) / (1.0 * this->scale.size());
 
-	//int index = floor(1.0 * y / divisionSize);	
 	int index = floor(1.0 * x / divisionSize);	
 	return this->scale[index % this->scale.size()];	
 }

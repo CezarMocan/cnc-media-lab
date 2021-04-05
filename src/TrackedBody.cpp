@@ -20,7 +20,6 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->fillShader.load("shaders_gl3/fill");
 	this->dotsShader.load("shaders_gl3/dots");
 
-	this->blurShader.setup(DEPTH_WIDTH, DEPTH_HEIGHT, 6, .2, 2);
 	this->mainFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 	this->polyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
 
@@ -44,7 +43,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->segment = new ofPath();
 }
 
-void TrackedBody::setOSCManager(ofOSCManager* m)
+void TrackedBody::setOSCManager(MaxMSPNetworkManager* m)
 {
 	this->oscManager = m;
 	this->bodySoundPlayer->setOscManager(m);
@@ -56,7 +55,7 @@ void TrackedBody::setBodySoundPlayer(BodySoundPlayer* bsp)
 	this->bodySoundPlayer->start();
 }
 
-void TrackedBody::setTracked(bool isTracked)
+void TrackedBody::setIsTracked(bool isTracked)
 {
 	if (!this->isRemote) {
 		if (isTracked != this->isTracked) {
@@ -115,8 +114,8 @@ void TrackedBody::updateContourData(vector<ofPolyline> contours)
 {
 	if (contours.size() == 0) return;
 	// 1. Discard all contours except for the one of maximum perimeter
-	// If this is not precise enough, can get the area. I think area is
-	// more computationally expensive.
+	// If this is not precise enough, can use the area (but that's probably more
+	// computationally expensive)
 	pair<int, float> maxContour = make_pair(-1, -1.0f);
 	for (int i = 0; i < contours.size(); i++) {
 		float perimeter = contours[i].getPerimeter();
@@ -177,7 +176,6 @@ void TrackedBody::updateContourData(vector<ofPolyline> contours)
 void TrackedBody::updateDelayedContours() {
 	if (this->contour.size() == 0) return;
 	for (int ct = 0; ct < this->delayedContours.size(); ct++) {
-		// float smoothing = ofMap(ct, 0, this->delayedContours.size(), this->smoothingFactor, 0.99);
 		float smoothing = ofMap(sqrt(ct), 0, sqrt(this->delayedContours.size()), 0.9, 0.999);
 		for (int i = 0; i < delayedContours[ct].size(); i++) {
 			int newIndex = (i + this->contourIndexOffset) % this->contour.size();
@@ -185,11 +183,6 @@ void TrackedBody::updateDelayedContours() {
 			delayedContours[ct][i].y = (1 - smoothing) * this->contour[newIndex].y + smoothing * delayedContours[ct][i].y;
 		}
 	}
-}
-
-void TrackedBody::setDrawMode(int drawMode)
-{
-	this->drawMode = drawMode;
 }
 
 float TrackedBody::getJointsDistance(JointType a, JointType b)
@@ -206,27 +199,6 @@ float TrackedBody::getNormalizedJointsDistance(JointType a, JointType b)
 	float d = this->getJointsDistance(a, b);
 	float unit = this->getJointsDistance(JointType_ShoulderLeft, JointType_ShoulderRight);
 	return d / (8.0 * unit);
-}
-
-float TrackedBody::getNormalizedArea() {
-	if (this->contour.size() < 4) return 0;
-	float area = fabs(this->contour.getArea());
-	float unit = this->getJointsDistance(JointType_ShoulderLeft, JointType_ShoulderRight);
-	return (area / (unit * unit));
-}
-
-float TrackedBody::getJointsAngle(JointType a, JointType b, JointType c)
-{
-	if (this->joints.find(a) == this->joints.end()) return -1;
-	if (this->joints.find(b) == this->joints.end()) return -1;
-	if (this->joints.find(c) == this->joints.end()) return -1;
-	ofVec2f j1 = this->joints[a]->getPosition();
-	ofVec2f j2 = this->joints[b]->getPosition();
-	ofVec2f j3 = this->joints[c]->getPosition();
-	float angle = BodyUtils::getVectorAngleDeg(j2, j1) - BodyUtils::getVectorAngleDeg(j2, j3);//(360.0f - BodyUtils::getVectorAngleDeg((j3 - j2), (j2 - j1)));
-	while (angle < 0) angle += 360;
-	while (angle >= 360) angle -= 360;	
-	return angle;
 }
 
 float TrackedBody::getJointSpeed(JointType a)
@@ -297,114 +269,14 @@ void TrackedBody::update()
 
 }
 
-void TrackedBody::drawJointLine(JointType a, JointType b)
-{
-	if (this->joints.find(a) == this->joints.end()) return;
-	if (this->joints.find(b) == this->joints.end()) return;
-	ofVec2f p1 = this->joints[a]->getPosition();
-	ofVec2f p2 = this->joints[b]->getPosition();
-	float distance = p1.distance(p2);
-	ofSetLineWidth(400.0f / distance);
-	//ofSetLineWidth(10);
-	ofDrawLine(p1, p2);
-	ofSetLineWidth(1);
-
-}
-
-void TrackedBody::drawJointPolygon(vector<JointType> v)
-{
-	for (int i = 0; i < v.size(); i++) {
-		if (this->joints.find(v[i]) == this->joints.end()) return;
-	}
-	for (int i = 0; i < v.size() - 1; i++) {
-		this->drawJointLine(v[i], v[i + 1]);
-		//ofDrawLine(this->joints[v[i]]->getPosition(), this->joints[v[i + 1]]->getPosition());
-	}
-	this->drawJointLine(v[v.size() - 1], v[0]);	
-}
-
-void TrackedBody::drawJointArc(JointType a, JointType b, JointType c)
-{	
-	if (this->joints.find(a) == this->joints.end()) return;
-	if (this->joints.find(b) == this->joints.end()) return;
-	if (this->joints.find(c) == this->joints.end()) return;
-
-	ofVec2f center = this->joints[b]->getPosition();
-	ofVec2f inner = this->joints[a]->getPosition();
-	ofVec2f outer = this->joints[c]->getPosition();
-	ofVec2f circleCenter = (inner + outer) / 2;
-
-	ofPolyline curve;	
-	ofLogNotice() << center.angleRad(outer) << " " << atan2((outer - center).y, (outer - center).x);
-	//float outerAngleDeg = atan2((outer - center).y, (outer - center).x) * 180 / PI;
-	//float innerAngleDeg = atan2((inner - center).y, (inner - center).x) * 180 / PI;
-	//curve.arc(center.x, center.y, center.distance(inner), center.distance(outer), outerAngleDeg, innerAngleDeg, 50);
-
-	float outerAngleDeg = BodyUtils::getVectorAngleDeg(circleCenter, outer);
-	float innerAngleDeg = BodyUtils::getVectorAngleDeg(circleCenter, inner);
-	curve.arc(circleCenter.x, circleCenter.y, circleCenter.distance(inner), circleCenter.distance(outer), outerAngleDeg, innerAngleDeg, 50);
-	curve.draw();
-	
-	this->drawJointLine(a, b);
-	this->drawJointLine(c, b);
-}
-
-void TrackedBody::drawMovement()
-{
-	if (!this->isTracked) return;
-	for (auto it = this->joints.begin(); it != this->joints.end(); ++it) {
-		ofVec2f position = it->second->getPosition();
-		float speed = max(1.0f, it->second->getSpeed());
-		ofDrawCircle(position, speed);
-	}
-}
-
-void TrackedBody::drawJoints()
-{
-	if (!this->isTracked) return;
-
-	ofPushStyle();
-	ofSetColor(this->generalColor);
-	this->drawJointLine(JointType_WristLeft, JointType_WristRight);
-	this->drawJointLine(JointType_ElbowLeft, JointType_ElbowRight);
-	this->drawJointLine(JointType_HandLeft, JointType_HandRight);
-	this->drawJointLine(JointType_ShoulderLeft, JointType_ShoulderRight);
-
-	vector<JointType> poly1{ JointType_WristLeft, JointType_AnkleLeft, JointType_AnkleRight, JointType_WristRight };
-	this->drawJointPolygon(poly1);
-
-	this->drawJointArc(JointType_HipRight, JointType_ShoulderRight, JointType_WristRight);
-	this->drawJointArc(JointType_WristLeft, JointType_ShoulderLeft, JointType_HipLeft);
-	this->drawJointArc(JointType_HandRight, JointType_ElbowRight, JointType_ShoulderRight);
-	this->drawJointArc(JointType_ShoulderLeft, JointType_ElbowLeft, JointType_HandLeft);
-	this->drawJointArc(JointType_SpineBase, JointType_SpineMid, JointType_Head);
-	this->drawJointLine(JointType_WristLeft, JointType_KneeLeft);
-	this->drawJointLine(JointType_WristLeft, JointType_HipLeft);
-	this->drawJointLine(JointType_WristLeft, JointType_AnkleLeft);
-	ofPopStyle();
-}
-
 void TrackedBody::drawContours()
 {
 	if (!this->isTracked) return;
 	if (this->contour.size() < 3) return;
 	ofPushStyle();
 	ofSetColor(this->generalColor);
-
 	this->contour.draw();
-	/*
-	for (int i = 0; i < this->delayedContours.size(); i++) {
-		ofSetColor(this->generalColor.r, this->generalColor.g, this->generalColor.b, ofMap(i, 0, this->delayedContours.size(), 255, 0));
-		this->delayedContours[i].draw();
-	}
-	*/
 	ofPopStyle();
-}
-
-void TrackedBody::drawSoundPlayer()
-{
-	if (!this->isTracked) return;
-	this->bodySoundPlayer->draw();
 }
 
 void TrackedBody::setJointUniform(JointType joint, string uniformName, ofShader shader) {
@@ -412,39 +284,6 @@ void TrackedBody::setJointUniform(JointType joint, string uniformName, ofShader 
 		auto j = this->joints[joint];
 		shader.setUniform3f(uniformName, j->getPosition().x, j->getPosition().y, 5.0f * j->getSpeed());
 	}
-}
-
-ofPolyline TrackedBody::getVoronoiPolyline(int bodyInsideCells, bool forceCellsInsideBody) {	
-	int noPoints = this->contourPoints;
-	if (this->delayedContours.size() == 0) return ofPolyline();
-	ofPolyline resampled = this->delayedContours[0];//.getResampledByCount(noPoints);
-	ofPolyline originalPolyline = ofPolyline(resampled);
-
-	
-	if (this->voronoiPoints.size() != bodyInsideCells) {
-		this->voronoiPoints.clear();
-		for (int i = 0; i < bodyInsideCells; i++) {
-			int id1 = (int)ofRandom(noPoints);
-			int id2 = (int)ofRandom(noPoints);
-			this->voronoiPoints.push_back(make_pair(make_pair(id1, id2), ofRandom(1.0)));
-		}
-	}
-
-	for (int i = 0; i < this->voronoiPoints.size(); i++) {
-		ofPoint p1 = resampled.getVertices()[this->voronoiPoints[i].first.first];
-		ofPoint p2 = resampled.getVertices()[this->voronoiPoints[i].first.second];
-		ofPoint p3 = (p2 - p1) * this->voronoiPoints[i].second + p1;
-		if (forceCellsInsideBody) {
-			if (originalPolyline.inside(p3)) {
-				resampled.addVertex(p3.x, p3.y);
-			}
-		}
-		else {
-			resampled.addVertex(p3.x, p3.y);
-		}
-	}
-		
-	return resampled;
 }
 
 vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
@@ -514,7 +353,6 @@ void TrackedBody::drawContourForRaster(ofColor color) {
 
 void TrackedBody::drawRaster()
 {
-	//this->drawWithShader(&this->fillShader);
 	this->drawContourForRaster(this->generalColor);
 }
 
@@ -576,9 +414,6 @@ void TrackedBody::draw()
 	case 3:
 		this->drawMode = BDRAW_MODE_DOTS;
 		break;
-//	case 4:
-	//	this->drawMode = BDRAW_MODE_VLINES;
-		//break;
 	default:
 		this->drawMode = BDRAW_MODE_VLINES;
 		break;
@@ -589,10 +424,7 @@ void TrackedBody::draw()
 	if (this->drawMode & BDRAW_MODE_VLINES) this->drawVLines();
 	if (this->drawMode & BDRAW_MODE_GRID) this->drawGrid();
 	if (this->drawMode & BDRAW_MODE_DOTS) this->drawDots();
-	//if (this->drawMode & BDRAW_MODE_JOINTS) this->drawJoints();
-	if (this->drawMode & BDRAW_MODE_MOVEMENT) this->drawMovement();
 	if (this->drawMode & BDRAW_MODE_CONTOUR) this->drawContours();
-	//if (this->drawMode & BDRAW_MODE_SOUND) this->drawSoundPlayer();
 }
 
 void TrackedBody::assignInstrument()
@@ -753,12 +585,6 @@ void TrackedBody::sendOSCData()
 	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 
 	// Distances
-	/*
-	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_WristRight);
-	normalizedValue = ofMap(value, 0, 1, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-hand-r-hand", normalizedValue);
-	*/
-
 	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-hand-l-knee", normalizedValue);
@@ -766,56 +592,6 @@ void TrackedBody::sendOSCData()
 	value = this->getNormalizedJointsDistance(JointType_KneeRight, JointType_WristRight);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "r-hand-r-knee", normalizedValue);
-
-	/*
-	value = this->getNormalizedJointsDistance(JointType_Head, JointType_AnkleLeft);
-	normalizedValue = ofMap(value, 0, 1, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-knee-r-knee", normalizedValue);
-	*/
-
-	/*
-	value = this->getNormalizedArea();
-	normalizedValue = ofMap(value, 0, 15, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "body-area", normalizedValue);
-	*/
-
-	// Angles
-	/*
-	value = (this->getJointsAngle(JointType_HipRight, JointType_ShoulderRight, JointType_WristRight) + 30);
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(value, 0, 360, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "r-arm", normalizedValue);
-
-	value = (this->getJointsAngle(JointType_WristLeft, JointType_ShoulderLeft, JointType_HipLeft) + 30);
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(value, 0, 360, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "l-arm", normalizedValue);
-
-	value = this->getJointsAngle(JointType_HandRight, JointType_ElbowRight, JointType_ShoulderRight) + 10;
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(180 - value, 0, 180, 0, 1023, true);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "r-elbow", normalizedValue);
-
-	value = this->getJointsAngle(JointType_ShoulderLeft, JointType_ElbowLeft, JointType_HandLeft) + 10;
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(180 - value, 0, 180, 0, 1023, true);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "l-elbow", normalizedValue);
-
-	value = this->getJointsAngle(JointType_AnkleLeft, JointType_KneeLeft, JointType_HipLeft) + 20;
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(180 - value, 0, 180, 0, 1023, true);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "l-knee", normalizedValue);
-
-	value = this->getJointsAngle(JointType_HipRight, JointType_KneeRight, JointType_AnkleRight) + 20;
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(180 - value, 0, 180, 0, 1023, true);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "r-knee", normalizedValue);
-
-	value = this->getJointsAngle(JointType_KneeLeft, JointType_SpineBase, JointType_KneeRight) + 15;
-	if (value >= 360) value -= 360;
-	normalizedValue = ofMap(value, 0, 180, 0, 1023, true);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::ANGLE, "legs", normalizedValue);
-	*/
 
 	// Movements	
 	value = this->getJointNormalizedSpeed(JointType_WristLeft);
@@ -834,16 +610,6 @@ void TrackedBody::sendOSCData()
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-foot", normalizedValue);
 
-	/*
-	value = this->getJointNormalizedSpeed(JointType_HipLeft);
-	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-hip", normalizedValue);
-
-	value = this->getJointNormalizedSpeed(JointType_HipRight);
-	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-hip", normalizedValue);
-	*/
-
 	value = this->getJointNormalizedSpeed(JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-knee", normalizedValue);
@@ -851,17 +617,6 @@ void TrackedBody::sendOSCData()
 	value = this->getJointNormalizedSpeed(JointType_KneeRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
 	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-knee", normalizedValue);
-
-	/*
-	value = this->getJointNormalizedSpeed(JointType_ShoulderLeft);
-	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-shoulder", normalizedValue);
-
-	value = this->getJointNormalizedSpeed(JointType_ShoulderRight);
-	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-shoulder", normalizedValue);
-	*/
-
 }
 
 bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
