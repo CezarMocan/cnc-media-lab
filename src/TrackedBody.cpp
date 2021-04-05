@@ -43,6 +43,8 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->segment = new ofPath();
 }
 
+// ------ Setting state ------
+
 void TrackedBody::setOSCManager(MaxMSPNetworkManager* m)
 {
 	this->maxMSPNetworkManager = m;
@@ -77,6 +79,11 @@ void TrackedBody::setNumberOfContourPoints(int contourPoints)
 	}
 }
 
+void TrackedBody::setGeneralColor(ofColor color)
+{
+	this->generalColor = color;
+}
+
 void TrackedBody::setIsRecording(bool isRecording)
 {
 	this->isRecording = isRecording;
@@ -86,6 +93,8 @@ bool TrackedBody::getIsRecording()
 {
 	return this->isRecording;
 }
+
+// ------ Setting & processing data from kinect at every frame ------
 
 void TrackedBody::updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> skeleton, ICoordinateMapper* coordinateMapper)
 {
@@ -157,7 +166,7 @@ void TrackedBody::updateContourData(vector<ofPolyline> contours)
 			float sqDistance = referencePersistentVertex.squareDistance(ofVec2f(newVertices[i]));
 			if (sqDistance <= thresholdDistance + 0.1f) {
 				// We have a candidate
-				float distance = BodyUtils::getPolylineSquaredDistanceWithOffset(this->contour, newContour, i);
+				float distance = GeometryUtils::getPolylineSquaredDistanceWithOffset(this->contour, newContour, i);
 				if (distance < minDistance.second) minDistance = make_pair(i, distance);			
 			}
 		}
@@ -184,6 +193,9 @@ void TrackedBody::updateDelayedContours() {
 		}
 	}
 }
+
+
+// ------ Calculating metrics on the body, to send to MaxMSP ------
 
 float TrackedBody::getJointsDistance(JointType a, JointType b)
 {
@@ -227,6 +239,8 @@ float TrackedBody::getScreenRatio()
 	return unit / (1.0 * DEPTH_WIDTH);
 }
 
+// ------ Getting segment from contour, for UI background ------
+
 pair<ofPath*, ofRectangle> TrackedBody::getContourSegment(int start, int amount)
 {
 	//ofPolyline ctr = this->contour;
@@ -256,6 +270,8 @@ pair<ofPath*, ofRectangle> TrackedBody::getContourSegment(int start, int amount)
 	return make_pair(this->segment, rect);
 }
 
+// ------ Update per frame ------
+
 void TrackedBody::update()
 {
 	if (!this->isTracked) return;
@@ -266,23 +282,6 @@ void TrackedBody::update()
 
 	this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
 	this->bodySoundPlayer->update();
-}
-
-void TrackedBody::drawContours()
-{
-	if (!this->isTracked) return;
-	if (this->contour.size() < 3) return;
-	ofPushStyle();
-	ofSetColor(this->generalColor);
-	this->contour.draw();
-	ofPopStyle();
-}
-
-void TrackedBody::setJointUniform(JointType joint, string uniformName, ofShader shader) {
-	if (this->joints.find(joint) != this->joints.end()) {
-		auto j = this->joints[joint];
-		shader.setUniform3f(uniformName, j->getPosition().x, j->getPosition().y, 5.0f * j->getSpeed());
-	}
 }
 
 vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
@@ -334,8 +333,32 @@ vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 
 	if (interestPoints.size() > 0)
 		sort(interestPoints.begin(), interestPoints.end(), TrackedBody::interestPointComparator);
-	
+
 	return interestPoints;
+}
+
+bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
+{
+	return (a.second.y <= b.second.y);
+}
+
+// ------ Drawing per frame ------
+
+void TrackedBody::drawContours()
+{
+	if (!this->isTracked) return;
+	if (this->contour.size() < 3) return;
+	ofPushStyle();
+	ofSetColor(this->generalColor);
+	this->contour.draw();
+	ofPopStyle();
+}
+
+void TrackedBody::setJointUniform(JointType joint, string uniformName, ofShader shader) {
+	if (this->joints.find(joint) != this->joints.end()) {
+		auto j = this->joints[joint];
+		shader.setUniform3f(uniformName, j->getPosition().x, j->getPosition().y, 5.0f * j->getSpeed());
+	}
 }
 
 void TrackedBody::drawContourForRaster(ofColor color) {
@@ -426,6 +449,8 @@ void TrackedBody::draw()
 	if (this->drawMode & BDRAW_MODE_CONTOUR) this->drawContours();
 }
 
+// ------ Instrument assignment management ------
+
 void TrackedBody::assignInstrument()
 {
 	this->assignInstrument(TrackedBody::getFirstFreeInstrument());
@@ -474,6 +499,8 @@ void TrackedBody::releaseInstrument(int instrumentId)
 	if (instrumentId < 0 || instrumentId >= Constants::MAX_INSTRUMENTS) return;
 	TrackedBody::instruments[instrumentId]--;
 }
+
+// ------ Serialization and deserialization, for sending data over the network (to MaxMSP & to other peer)
 
 string TrackedBody::serialize()
 {
@@ -528,7 +555,7 @@ string TrackedBody::serialize()
 	return ss.str();
 }
 
-void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
+void TrackedBody::deserialize(string s)
 {
 	istringstream ss(s);
 	int bodyIndex;
@@ -618,10 +645,7 @@ void TrackedBody::sendDataToMaxMSP()
 	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-knee", normalizedValue);
 }
 
-bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
-{
-	return (a.second.y <= b.second.y);
-}
+// ------ Body sequencer management ------
 
 vector<JointType> TrackedBody::getCurrentlyPlayingJoints()
 {
@@ -636,9 +660,4 @@ vector<JointType> TrackedBody::getCurrentlyPlaying16Joints()
 vector<float> TrackedBody::getCurrentlyPlaying16Frequencies()
 {
 	return this->bodySoundPlayer->getCurrentlyPlaying16Frequencies();
-}
-
-void TrackedBody::setGeneralColor(ofColor color)
-{
-	this->generalColor = color;
 }

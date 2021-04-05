@@ -3,7 +3,7 @@
 #include "ofMain.h"
 #include "ofxCv.h"
 #include "TrackedJoint.h"
-#include "BodyUtils.h"
+#include "GeometryUtils.h"
 #include "Constants.h"
 #include "MaxMSPNetworkManager.h"
 #include "ofxVoronoi.h"
@@ -47,7 +47,7 @@ public:
 	virtual void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper);
 	virtual void updateContourData(vector<ofPolyline> contours);
 	void updateDelayedContours();
-	void updateSkeletonContourDataFromSerialized(string s);
+	void deserialize(string s);
 
 	float getJointsDistance(JointType a, JointType b);
 	float getNormalizedJointsDistance(JointType a, JointType b);

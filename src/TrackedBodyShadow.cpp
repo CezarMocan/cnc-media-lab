@@ -68,9 +68,6 @@ void TrackedBodyShadow::update()
 			newJoints[it->first] = TrackedJoint(it->second);
 		}
 		this->recordedJoints.push_back(newJoints);
-
-		// Record raster
-		//this->recordedTextures.push_back(this->texture);
 	}
 	else if (isPlaying) {
 		if (this->recordedContours.size() == 0) return;
@@ -83,11 +80,8 @@ void TrackedBodyShadow::update()
 		
 		this->joints.clear();
 		for (auto it = this->recordedJoints[this->playhead].begin(); it != this->recordedJoints[this->playhead].end(); ++it) {
-			this->joints[it->first] = &(it->second);//new TrackedJoint(it->second);
+			this->joints[it->first] = &(it->second);
 		}
-
-		//this->joints = this->recordedJoints[this->playhead];
-		//this->texture = this->recordedTextures[this->playhead];
 				
 		this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
 		this->bodySoundPlayer->update();

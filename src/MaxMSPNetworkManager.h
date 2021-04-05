@@ -28,9 +28,6 @@ public:
 
 	void sendNewBody(int bodyId);
 
-	void sendAllData();
-	void sendHandDistanceData();
-
 	void update();
 
 	int getSequencerStep();

@@ -60,14 +60,8 @@ void GUIManager::updateSequencer()
 	this->sequencerRight->update();
 }
 
-void GUIManager::drawSequencer()
-{
-	this->sequencerLeft->draw();
-	this->sequencerRight->draw();
-}
-
 void GUIManager::updateBackgroundContours()
-{	
+{
 	ofVec2f winSize = ofGetWindowSize() / 2.0;
 	ofVec2f padding = ofVec2f(25, 25);
 
@@ -90,6 +84,12 @@ void GUIManager::updateBackgroundContours()
 		this->rightBackgroundContour.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightBackgroundContour.second.width, ((winSize.y - 2 * padding.y) / this->rightBackgroundContour.second.height));
 		this->rightBackgroundContour.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
 	}
+}
+
+void GUIManager::drawSequencer()
+{
+	this->sequencerLeft->draw();
+	this->sequencerRight->draw();
 }
 
 void GUIManager::drawBackgroundContours()
@@ -262,7 +262,7 @@ void GUIManager::drawFrequencyGradient()
 	this->frequencyGradient.addColor(Colors::BACKGROUND);
 	this->frequencyGradient.draw();
 
-	// 0Hz -> 5KHz text
+	// 0Hz -> 2KHz text
 	ofPushMatrix();
 	ofPushStyle();
 	ofSetColor(Colors::YELLOW);

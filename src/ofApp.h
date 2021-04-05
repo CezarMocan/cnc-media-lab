@@ -12,6 +12,7 @@
 #include "BodySoundPlayer.h"
 #include "ofxClipper.h"
 #include "GUIManager.h"
+#include "BodiesManager.h"
 
 class ofApp : public ofBaseApp {
 
@@ -30,8 +31,10 @@ public:
 	void peerConnectButtonPressed();
 
 	// Kinect and bodies management
+	BodiesManager* bodiesManager;
 
 	// // Kinect, detecting body contours
+	/*
 	ofxKFW2::Device kinect;
 	ICoordinateMapper* coordinateMapper;
 	ofxCv::ContourFinder contourFinder;
@@ -80,16 +83,16 @@ public:
 	void clearBodyShadow(int index);
 	void updateBodyShadows();
 	void drawBodyShadows();
+	*/
 
 	// Visuals, GUI
+
+	//// General interface manager
+	GUIManager* guiManager;
 
 	//// Final shader pass, for applying grain on top of everything
 	ofShader grainShader;
 	ofFbo grainFbo;
-
-	GUIManager* guiManager;
-
-	// ofMesh frequencyGradient;
 
 	//// Simple panel for setting global parameters
 	bool parametersPanelVisible;
@@ -98,32 +101,10 @@ public:
 	ofParameter<bool> isLeftPlayer;
 	ofParameter<bool> automaticShadowsEnabled;
 
-	//// Networking GUI, for connecting with peer
-	ofxPanel networkGui;
+	//// Panel for app start-up: networking, connecting with peer
+	ofxPanel networkPanel;
 	ofParameter<string> peerIp;
 	ofParameter<string> peerPort;
 	ofParameter<string> localPort;
 	ofxButton peerConnectButton;
-
-	//// Sequencer GUI (squares at the top of the interface)
-	// Sequencer* sequencerLeft;
-	// Sequencer* sequencerRight;
-	// void updateSequencer();
-	// void drawSequencer();
-
-	//// Body contour tracing backgrounds
-	// pair<ofPath*, ofRectangle> leftBackgroundContour;
-	// pair<ofPath*, ofRectangle> rightBackgroundContour;
-	// void updateBackgroundContours();
-	// void drawBackgroundContours();
-
-	//// Remaining GUI elements
-	// void drawSystemStatus();
-	// void drawBodyTrackedStatus();
-	// void drawFrequencyGradient();
-	// void drawRectangularFrame();
-
-	//// Fonts
-	// ofTrueTypeFont fontRegular;
-	// ofTrueTypeFont fontBold;
 };

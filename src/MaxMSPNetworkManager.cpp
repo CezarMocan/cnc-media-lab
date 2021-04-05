@@ -128,19 +128,3 @@ void MaxMSPNetworkManager::sendNewBody(int bodyId)
 	ss << bodyId;
 	this->sendStringMessageToAddress(OscCategories::NEW_BODY, ss.str());
 }
-
-void MaxMSPNetworkManager::sendAllData()
-{
-	int time = ofGetSystemTimeMillis();
-	if (time - this->lastMessageTimestamp < this->MESSAGE_INTERVAL_MS) {
-		return;
-	}
-
-	this->lastMessageTimestamp = time;
-	this->sendIntMessageToAddress("/test2", time);
-
-}
-
-void MaxMSPNetworkManager::sendHandDistanceData()
-{
-}

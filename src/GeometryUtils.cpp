@@ -1,16 +1,16 @@
-#include "BodyUtils.h"
+#include "GeometryUtils.h"
 
-float BodyUtils::getVectorAngle(ofVec2f a, ofVec2f b)
+float GeometryUtils::getVectorAngle(ofVec2f a, ofVec2f b)
 {
 	return atan2((b - a).y, (b - a).x);
 }
 
-float BodyUtils::getVectorAngleDeg(ofVec2f a, ofVec2f b)
+float GeometryUtils::getVectorAngleDeg(ofVec2f a, ofVec2f b)
 {
 	return getVectorAngle(a, b) * 180 / PI;
 }
 
-float BodyUtils::getPolylineSquaredDistanceWithOffset(ofPolyline a, ofPolyline b, int offset)
+float GeometryUtils::getPolylineSquaredDistanceWithOffset(ofPolyline a, ofPolyline b, int offset)
 {
 	auto aV = a.getVertices();
 	auto bV = b.getVertices();
