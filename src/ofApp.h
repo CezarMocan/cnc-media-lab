@@ -56,7 +56,10 @@ public:
 	void computeBodyContours();
 	void resolveInstrumentConflicts();
 
+	void updateTrackedBodies();
 	void drawTrackedBodies();
+
+	void updateRemoteBodies();
 	void drawRemoteBodies();
 
 	//// Body intersections between local and remote
@@ -88,9 +91,9 @@ public:
 	//// Simple GUI for setting global parameters
 	bool guiVisible;
 	ofxPanel gui;
-	ofParameter<int> polygonFidelity;
-	ofParameter<bool> isLeft;
-	ofParameter<bool> automaticShadows;
+	ofParameter<int> bodyContourPolygonFidelity;
+	ofParameter<bool> isLeftPlayer;
+	ofParameter<bool> automaticShadowsEnabled;
 
 	//// Networking GUI, for connecting with peer
 	ofxPanel networkGui;

@@ -50,8 +50,8 @@ void ofApp::setup() {
 	// GUI setup	
 	guiVisible = false;
 	gui.setup();
-	gui.add(polygonFidelity.set("Contour #points", 200, 10, 1000));
-	gui.add(automaticShadows.set("Auto Shadows", true));	
+	gui.add(bodyContourPolygonFidelity.set("Contour #points", 200, 10, 1000));
+	gui.add(automaticShadowsEnabled.set("Auto Shadows", true));	
 
 	// Network GUI setup
 	peerConnectButton.addListener(this, &ofApp::peerConnectButtonPressed);
@@ -60,7 +60,7 @@ void ofApp::setup() {
 	networkGui.add(peerIp.set("Peer IP", Constants::CEZAR_IP));
 	networkGui.add(peerPort.set("Peer Port", "12346"));
 	networkGui.add(localPort.set("Local Port", "12347"));
-	networkGui.add(isLeft.set("Left Side", true));
+	networkGui.add(isLeftPlayer.set("Left Side", true));
 	networkGui.add(peerConnectButton.setup("Connect"));
 
 	// Sequencer UI
@@ -117,6 +117,19 @@ void ofApp::update() {
 	this->maxMSPNetworkManager->update();
 	this->peerNetworkManager->update();
 
+	this->updateTrackedBodies();
+	this->updateRemoteBodies();
+	this->updateBodyShadows();
+
+	this->resolveInstrumentConflicts();
+
+	this->updateBackgroundContours();
+	this->updateSequencer();
+
+	this->updateBodiesIntersection();
+}
+
+void ofApp::updateTrackedBodies() {
 	// Update each tracked body after skeleton data was entered
 	// Send data over the network
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
@@ -125,29 +138,20 @@ void ofApp::update() {
 
 		// Send sound data to MaxMSP
 		this->trackedBodies[bodyId]->sendDataToMaxMSP();
-		
+
 		// Send serialized body data over the network (every 3 frames seems enough)
 		string data = this->trackedBodies[bodyId]->serialize();
 		if (ofGetFrameNum() % 3 == 0)
 			this->peerNetworkManager->sendBodyData(bodyId, data);
 	}
 
-	// Update each recording and send data over OSC to MaxMSP and the peer
-	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
-		TrackedBodyShadow* rec = *it;
-		rec->update();
+	TrackedBody* leftBody = this->getLeftBody();
+	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
+	TrackedBody* rightBody = this->getRightBody();
+	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
+}
 
-		if (rec->getIsPlaying()) {
-			// Send sound data to MaxMSP
-			rec->sendDataToMaxMSP();
-
-			// Send serialized body data over the network
-			string data = rec->serialize();
-			if (ofGetFrameNum() % 3 == 1)
-				this->peerNetworkManager->sendBodyData(rec->index, data);
-		}
-	}
-
+void ofApp::updateRemoteBodies() {
 	// Get data from peer and forward to MaxMSP
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
 		if (!this->peerNetworkManager->isBodyActive(bodyId)) {
@@ -170,17 +174,11 @@ void ofApp::update() {
 			this->remoteBodies[bodyId]->sendDataToMaxMSP();
 		}
 	}
-
-	this->updateBodyShadows();
-	this->resolveInstrumentConflicts();
-	this->updateBackgroundContours();
-	this->updateSequencer();
-	this->updateBodiesIntersection();
 }
 
 void ofApp::resolveInstrumentConflicts() {
 	// If left body and right body are on the same instrument, reassign instrument to left body
-	if (!this->isLeft.get()) return;
+	if (!this->isLeftPlayer.get()) return;
 
 	TrackedBody* rightBody = this->getRightBody();
 	TrackedBody* leftBody = this->getLeftBody();
@@ -213,7 +211,7 @@ void ofApp::detectBodies()
 			}
 			
 			this->trackedBodies[body.bodyId]->updateSkeletonData(body.joints, coordinateMapper);
-			this->trackedBodies[body.bodyId]->setNumberOfContourPoints(this->polygonFidelity);
+			this->trackedBodies[body.bodyId]->setNumberOfContourPoints(this->bodyContourPolygonFidelity);
 		}
 		else {
 			// Remove untracked bodies from map
@@ -273,7 +271,7 @@ TrackedBody* ofApp::getRemoteBody()
 
 TrackedBody* ofApp::getLeftBody()
 {
-	if (this->isLeft.get()) {
+	if (this->isLeftPlayer.get()) {
 		return this->getLocalBody();
 	}
 	else {
@@ -283,7 +281,7 @@ TrackedBody* ofApp::getLeftBody()
 
 TrackedBody* ofApp::getRightBody()
 {
-	if (this->isLeft.get()) {
+	if (this->isLeftPlayer.get()) {
 		return this->getRemoteBody();
 	}
 	else {
@@ -366,27 +364,43 @@ void ofApp::playBodyShadow(int index)
 
 void ofApp::updateBodyShadows()
 {
-	// Update data for shadows based on new frame data for tracked bodies
+	// Update each shadow and send data over OSC to MaxMSP and the peer
+	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
+		TrackedBodyShadow* rec = *it;
+		rec->update();
+
+		if (rec->getIsPlaying()) {
+			// Send sound data to MaxMSP
+			rec->sendDataToMaxMSP();
+
+			// Send serialized body data over the network
+			string data = rec->serialize();
+			if (ofGetFrameNum() % 3 == 1)
+				this->peerNetworkManager->sendBodyData(rec->index, data);
+		}
+	}
+
+	// Update data for currently recording shadows, based on new frame data for tracked bodies
 	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
 		TrackedBodyShadow* rec = *it;
 		if (!rec->getIsRecording()) continue;
 
 		int trackedBodyId = rec->getTrackedBodyIndex();
-
 		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
 			rec->stopRecording();
 		}
 		else {
 			TrackedBody* body = this->trackedBodies[trackedBodyId];
 			rec->updateSkeletonData(body->latestSkeleton, body->coordinateMapper);
-			rec->setNumberOfContourPoints(this->polygonFidelity);
+			rec->setNumberOfContourPoints(this->bodyContourPolygonFidelity);
 			rec->updateContourData({ body->rawContour });
 		}
 	}
 
-	if (!this->automaticShadows.get()) return;
+	// Manage auto-spawning for shadows
+	if (!this->automaticShadowsEnabled.get()) return;
 
-	// Spawn shadow if random is good
+	// Spawn new shadow at random interval
 	int spawnRand = (int) ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
 	if (spawnRand == 2 && this->activeBodyShadows.size() < 2) {
 		bool isRecording = false;
@@ -837,17 +851,11 @@ void ofApp::drawInterface() {
 	ofScale(Layout::WINDOW_SCALE);
 
 	this->drawBackgroundContours();
-
-	TrackedBody* leftBody = this->getLeftBody();
-	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
-	TrackedBody* rightBody = this->getRightBody();
-	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
-
 	this->drawBodyShadows();
 	this->drawTrackedBodies();
 	this->drawRemoteBodies();
 	this->drawBodiesIntersection();
-	this->drawSequencer();	
+	this->drawSequencer();
 	this->drawBodyTrackedStatus();
 	this->drawFrequencyGradient();
 

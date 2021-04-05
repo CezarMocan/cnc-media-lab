@@ -266,7 +266,6 @@ void TrackedBody::update()
 
 	this->bodySoundPlayer->setInterestPoints(this->getInterestPoints());
 	this->bodySoundPlayer->update();
-
 }
 
 void TrackedBody::drawContours()
