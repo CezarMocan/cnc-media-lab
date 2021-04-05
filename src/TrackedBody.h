@@ -39,7 +39,7 @@ public:
 	void setBodySoundPlayer(BodySoundPlayer* bsp);
 
 	void setIsTracked(bool isTracked);
-	void setContourPoints(int contourPoints);
+	void setNumberOfContourPoints(int contourPoints);
 
 	void setIsRecording(bool isRecording);
 	bool getIsRecording();
@@ -81,7 +81,7 @@ public:
 
 	string serialize();	
 
-	virtual void sendOSCData();
+	virtual void sendDataToMaxMSP();
 
 	map<JointType, ofxKinectForWindows2::Data::Joint> latestSkeleton;
 	ICoordinateMapper* coordinateMapper;
@@ -110,7 +110,7 @@ protected:
 	bool isRecording;
 	bool isRemote;
 	ofColor generalColor;
-	MaxMSPNetworkManager* oscManager;
+	MaxMSPNetworkManager* maxMSPNetworkManager;
 
 	BodySoundPlayer* bodySoundPlayer;
 

@@ -2,9 +2,9 @@
 
 #include "TrackedBody.h"
 
-class TrackedBodyRecording : public TrackedBody {
+class TrackedBodyShadow : public TrackedBody {
 public:
-	TrackedBodyRecording(int index, float smoothingFactor, int contourPoints, int noDelayedContours = 20) : TrackedBody(index, smoothingFactor, contourPoints, noDelayedContours) {
+	TrackedBodyShadow(int index, float smoothingFactor, int contourPoints, int noDelayedContours = 20) : TrackedBody(index, smoothingFactor, contourPoints, noDelayedContours) {
 		this->isPlaying = false;
 		this->isRecording = false;
 		this->playhead = 0;
@@ -27,7 +27,7 @@ public:
 	void draw() override;
 	void updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper) override;
 	void updateContourData(vector<ofPolyline> contours) override;
-	void sendOSCData() override;
+	void sendDataToMaxMSP() override;
 private:
 	int playhead;
 	int playDirection;

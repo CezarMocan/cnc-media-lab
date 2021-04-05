@@ -29,9 +29,6 @@ void ofApp::setup() {
 	}
 	
 	// Load shaders
-	bodyFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
-	bodyDebugFbo.allocate(DEPTH_WIDTH, DEPTH_HEIGHT);
-	bodyIndexShader.load("shaders_gl3/bodyIndex");
 	grainFbo.allocate(ofGetWindowWidth(), ofGetWindowHeight());
 	grainShader.load("shaders_gl3/grain");
 
@@ -40,7 +37,7 @@ void ofApp::setup() {
 	fontBold.load("fonts/be-ag-medium.ttf", Layout::FONT_SIZE - 2);
 
 	// OSC setup
-	oscSoundManager = new MaxMSPNetworkManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
+	maxMSPNetworkManager = new MaxMSPNetworkManager(Constants::OSC_HOST, Constants::OSC_PORT, Constants::OSC_RECEIVE_PORT);
 
 	// Tracked bodies initialize
 	TrackedBody::initialize();
@@ -96,30 +93,29 @@ void ofApp::setup() {
 		});
 
 	// Network manager initialization
-	networkManager = NULL;
+	peerNetworkManager = NULL;
 	
 	// Remote bodies intersection setup
-	intersectionPath = new ofPath();
-	remoteIntersectionActive = false;
-	remoteIntersectionStartTimestamp = 0;
+	bodiesIntersectionPath = new ofPath();
+	bodiesIntersectionActive = false;
+	bodiesIntersectionStartTimestamp = 0;
 }
 
 void ofApp::peerConnectButtonPressed() {
-	this->networkManager = new PeerNetworkManager(this->peerIp.get(), atoi(this->peerPort.get().c_str()), atoi(this->localPort.get().c_str()));
+	this->peerNetworkManager = new PeerNetworkManager(this->peerIp.get(), atoi(this->peerPort.get().c_str()), atoi(this->localPort.get().c_str()));
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	if (this->networkManager == NULL) {
+	if (this->peerNetworkManager == NULL) {
 		return;
 	}	
 	this->kinect.update();
+	this->detectBodies();
+	this->computeBodyContours();
 
-	this->detectBodySkeletons();
-	this->detectBodyContours();
-
-	this->oscSoundManager->update();
-	this->networkManager->update();
+	this->maxMSPNetworkManager->update();
+	this->peerNetworkManager->update();
 
 	// Update each tracked body after skeleton data was entered
 	// Send data over the network
@@ -128,58 +124,58 @@ void ofApp::update() {
 		this->trackedBodies[bodyId]->update();
 
 		// Send sound data to MaxMSP
-		this->trackedBodies[bodyId]->sendOSCData();
+		this->trackedBodies[bodyId]->sendDataToMaxMSP();
 		
 		// Send serialized body data over the network (every 3 frames seems enough)
 		string data = this->trackedBodies[bodyId]->serialize();
 		if (ofGetFrameNum() % 3 == 0)
-			this->networkManager->sendBodyData(bodyId, data);
+			this->peerNetworkManager->sendBodyData(bodyId, data);
 	}
 
 	// Update each recording and send data over OSC to MaxMSP and the peer
-	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-		TrackedBodyRecording* rec = *it;
+	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
+		TrackedBodyShadow* rec = *it;
 		rec->update();
 
 		if (rec->getIsPlaying()) {
 			// Send sound data to MaxMSP
-			rec->sendOSCData();
+			rec->sendDataToMaxMSP();
 
 			// Send serialized body data over the network
 			string data = rec->serialize();
 			if (ofGetFrameNum() % 3 == 1)
-				this->networkManager->sendBodyData(rec->index, data);
+				this->peerNetworkManager->sendBodyData(rec->index, data);
 		}
 	}
 
 	// Get data from peer and forward to MaxMSP
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
-		if (!this->networkManager->isBodyActive(bodyId)) {
+		if (!this->peerNetworkManager->isBodyActive(bodyId)) {
 			if (this->remoteBodies.find(bodyId) != this->remoteBodies.end()) {
 				this->remoteBodies[bodyId]->setIsTracked(false);
 				this->remoteBodies.erase(bodyId);
 			}
 		}
 		else {
-			string bodyData = this->networkManager->getBodyData(bodyId);
+			string bodyData = this->peerNetworkManager->getBodyData(bodyId);
 			if (bodyData.size() < 2) continue;
 			if (this->remoteBodies.find(bodyId) == this->remoteBodies.end()) {
 				this->remoteBodies[bodyId] = new TrackedBody(bodyId, 0.75, 400, 2, true);
-				this->remoteBodies[bodyId]->setOSCManager(this->oscSoundManager);
+				this->remoteBodies[bodyId]->setOSCManager(this->maxMSPNetworkManager);
 				this->remoteBodies[bodyId]->setIsTracked(true);
-				this->oscSoundManager->sendNewBody(this->remoteBodies[bodyId]->getInstrumentId());
+				this->maxMSPNetworkManager->sendNewBody(this->remoteBodies[bodyId]->getInstrumentId());
 			}
 			this->remoteBodies[bodyId]->updateSkeletonContourDataFromSerialized(bodyData);
 			this->remoteBodies[bodyId]->update();
-			this->remoteBodies[bodyId]->sendOSCData();
+			this->remoteBodies[bodyId]->sendDataToMaxMSP();
 		}
 	}
 
-	this->manageBodyShadows();
+	this->updateBodyShadows();
 	this->resolveInstrumentConflicts();
-	this->updateBackgrounds();
+	this->updateBackgroundContours();
 	this->updateSequencer();
-	this->updateIntersection();
+	this->updateBodiesIntersection();
 }
 
 void ofApp::resolveInstrumentConflicts() {
@@ -196,7 +192,7 @@ void ofApp::resolveInstrumentConflicts() {
 	}
 }
 
-void ofApp::detectBodySkeletons()
+void ofApp::detectBodies()
 {
 	// Count number of tracked bodies and update skeletons for each tracked body
 	auto& bodies = kinect.getBodySource()->getBodies();
@@ -210,14 +206,14 @@ void ofApp::detectBodySkeletons()
 
 			if (this->trackedBodies.find(body.bodyId) == this->trackedBodies.end()) {
 				this->trackedBodies[body.bodyId] = new TrackedBody(body.bodyId, 0.75, 400, 2, false);
-				this->trackedBodies[body.bodyId]->setOSCManager(this->oscSoundManager);
+				this->trackedBodies[body.bodyId]->setOSCManager(this->maxMSPNetworkManager);
 				this->trackedBodies[body.bodyId]->setIsTracked(true);
 
-				this->oscSoundManager->sendNewBody(this->trackedBodies[body.bodyId]->getInstrumentId());
+				this->maxMSPNetworkManager->sendNewBody(this->trackedBodies[body.bodyId]->getInstrumentId());
 			}
 			
 			this->trackedBodies[body.bodyId]->updateSkeletonData(body.joints, coordinateMapper);
-			this->trackedBodies[body.bodyId]->setContourPoints(this->polygonFidelity);
+			this->trackedBodies[body.bodyId]->setNumberOfContourPoints(this->polygonFidelity);
 		}
 		else {
 			// Remove untracked bodies from map
@@ -230,30 +226,14 @@ void ofApp::detectBodySkeletons()
 			}
 		}
 	}
-
-	// Update data for recordings
-	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-		TrackedBodyRecording* rec = *it;
-		if (!rec->getIsRecording()) continue;
-
-		int trackedBodyId = rec->getTrackedBodyIndex();
-
-		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
-			rec->stopRecording();
-		}
-		else {
-			TrackedBody* body = this->trackedBodies[trackedBodyId];
-			rec->updateSkeletonData(body->latestSkeleton, body->coordinateMapper);
-			rec->setContourPoints(this->polygonFidelity);
-		}
-	}
 }
 
-void ofApp::detectBodyContours() {
+void ofApp::computeBodyContours() {
 	int previewWidth = DEPTH_WIDTH;
 	int previewHeight = DEPTH_HEIGHT;
 
-	// Split up the tracked bodies onto different textures
+	// WARNING: This code works under the assumption that there is only one tracked body
+	// (this is our installation setup.)
 	for (int i = 0; i < this->trackedBodyIds.size(); i++) {
 		const int bodyId = this->trackedBodyIds[i];
 		contourFinder.setUseTargetColor(true);
@@ -263,23 +243,6 @@ void ofApp::detectBodyContours() {
 		
 		TrackedBody* currentBody = this->trackedBodies[bodyId];
 		currentBody->updateContourData(contourFinder.getPolylines());
-	}
-
-	// Update data for recordings
-	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-		TrackedBodyRecording* rec = *it;
-		if (!rec->getIsRecording()) continue;
-
-		int trackedBodyId = rec->getTrackedBodyIndex();
-
-		//TODO (cez): This only works for local recordings
-		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
-			rec->stopRecording();
-		}
-		else {
-			TrackedBody* body = this->trackedBodies[trackedBodyId];
-			rec->updateContourData({ body->rawContour });
-		}
 	}
 }
 
@@ -299,7 +262,7 @@ TrackedBody* ofApp::getRemoteBody()
 	TrackedBody* remoteBody = NULL;
 
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
-		if (!this->networkManager->isBodyActive(bodyId)) continue;
+		if (!this->peerNetworkManager->isBodyActive(bodyId)) continue;
 		TrackedBody* body = this->remoteBodies[bodyId];
 		if (body->getIsRecording()) continue;
 		remoteBody = body;
@@ -352,27 +315,27 @@ int ofApp::getRightBodyIndex()
 	return (body == NULL ? -1 : body->index);
 }
 
-void ofApp::clearBodyRecording(int index)
+void ofApp::clearBodyShadow(int index)
 {
-	if (index >= this->activeBodyRecordings.size()) return;
+	if (index >= this->activeBodyShadows.size()) return;
 
-	this->activeBodyRecordings[index]->removeInstrument();
-	this->activeBodyRecordings.erase(this->activeBodyRecordings.begin() + index);
-	this->activeBodyRecordingsParams.erase(this->activeBodyRecordingsParams.begin() + index);
+	this->activeBodyShadows[index]->removeInstrument();
+	this->activeBodyShadows.erase(this->activeBodyShadows.begin() + index);
+	this->activeBodyShadowsParams.erase(this->activeBodyShadowsParams.begin() + index);
 }
 
-void ofApp::spawnBodyRecording()
+void ofApp::spawnBodyShadow()
 {
 	TrackedBody* originalBody = this->getLocalBody();
 	if (originalBody == NULL) return;
 	const int instrumentId = originalBody->getInstrumentId();
 	const int bodyId = originalBody->index;
-	const int recordingIndex = Constants::BODY_RECORDINGS_ID_OFFSET + this->activeBodyRecordings.size();
+	const int recordingIndex = Constants::BODY_RECORDINGS_ID_OFFSET + this->activeBodyShadows.size();
 
-	TrackedBodyRecording* rec = new TrackedBodyRecording(recordingIndex, 0.75, 400, 2);
+	TrackedBodyShadow* rec = new TrackedBodyShadow(recordingIndex, 0.75, 400, 2);
 
 	rec->setTrackedBodyIndex(bodyId);
-	rec->setOSCManager(this->oscSoundManager);
+	rec->setOSCManager(this->maxMSPNetworkManager);
 	rec->setIsTracked(true);
 	rec->setIsRecording(true);
 	rec->assignInstrument(instrumentId);
@@ -381,50 +344,68 @@ void ofApp::spawnBodyRecording()
 	float recordingDuration = 1000 * ofRandom(Constants::SHADOW_REC_MIN_DURATION_SEC, Constants::SHADOW_REC_MAX_DURATION_SEC);
 	float playDuration = 1000 * ofRandom(Constants::SHADOW_PLAY_MIN_DURATION_SEC, Constants::SHADOW_PLAY_MAX_DURATION_SEC);
 
-	this->activeBodyRecordings.push_back(rec);
-	this->activeBodyRecordingsParams.push_back(make_pair(spawnTime, make_pair(recordingDuration, playDuration)));
+	this->activeBodyShadows.push_back(rec);
+	this->activeBodyShadowsParams.push_back(make_pair(spawnTime, make_pair(recordingDuration, playDuration)));
 
 	rec->startRecording();
 }
 
-void ofApp::playBodyRecording(int index)
+void ofApp::playBodyShadow(int index)
 {
-	if (index >= this->activeBodyRecordings.size()) return;
+	if (index >= this->activeBodyShadows.size()) return;
 
-	TrackedBodyRecording* rec = this->activeBodyRecordings[index];
+	TrackedBodyShadow* rec = this->activeBodyShadows[index];
 	if (rec->getIsPlaying()) return;
 
 	int originalBodyId = rec->getTrackedBodyIndex();
 	TrackedBody* originalBody = this->trackedBodies[originalBodyId];
 	originalBody->assignInstrument();
 	rec->startPlayLoop();
-	this->oscSoundManager->sendNewBody(rec->getInstrumentId());
+	this->maxMSPNetworkManager->sendNewBody(rec->getInstrumentId());
 }
 
-void ofApp::manageBodyShadows()
+void ofApp::updateBodyShadows()
 {
+	// Update data for shadows based on new frame data for tracked bodies
+	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
+		TrackedBodyShadow* rec = *it;
+		if (!rec->getIsRecording()) continue;
+
+		int trackedBodyId = rec->getTrackedBodyIndex();
+
+		if (this->trackedBodies.find(trackedBodyId) == this->trackedBodies.end()) {
+			rec->stopRecording();
+		}
+		else {
+			TrackedBody* body = this->trackedBodies[trackedBodyId];
+			rec->updateSkeletonData(body->latestSkeleton, body->coordinateMapper);
+			rec->setNumberOfContourPoints(this->polygonFidelity);
+			rec->updateContourData({ body->rawContour });
+		}
+	}
+
 	if (!this->automaticShadows.get()) return;
 
 	// Spawn shadow if random is good
 	int spawnRand = (int) ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
-	if (spawnRand == 2 && this->activeBodyRecordings.size() < 2) {
+	if (spawnRand == 2 && this->activeBodyShadows.size() < 2) {
 		bool isRecording = false;
-		if (this->activeBodyRecordings.size() == 1 && this->activeBodyRecordings[0]->getIsRecording())
+		if (this->activeBodyShadows.size() == 1 && this->activeBodyShadows[0]->getIsRecording())
 			isRecording = true;
-		if (!isRecording) this->spawnBodyRecording();
+		if (!isRecording) this->spawnBodyShadow();
 	}
 
 	vector<int> indicesToRemove;
 	// Manage existing shadows
 	int currentTime = ofGetSystemTimeMillis();
-	for (int index = 0; index < this->activeBodyRecordings.size(); index++) {
-		TrackedBodyRecording* rec = this->activeBodyRecordings[index];
-		int spawnTime = this->activeBodyRecordingsParams[index].first;
-		float recordingDuration = this->activeBodyRecordingsParams[index].second.first;
-		float playDuration = this->activeBodyRecordingsParams[index].second.second;
+	for (int index = 0; index < this->activeBodyShadows.size(); index++) {
+		TrackedBodyShadow* rec = this->activeBodyShadows[index];
+		int spawnTime = this->activeBodyShadowsParams[index].first;
+		float recordingDuration = this->activeBodyShadowsParams[index].second.first;
+		float playDuration = this->activeBodyShadowsParams[index].second.second;
 
 		if (currentTime - spawnTime >= recordingDuration && rec->getIsRecording()) {
-			this->playBodyRecording(index);
+			this->playBodyShadow(index);
 		}
 
 		if (currentTime - spawnTime >= recordingDuration + playDuration) {
@@ -433,13 +414,13 @@ void ofApp::manageBodyShadows()
 	}
 
 	for (auto it = indicesToRemove.begin(); it != indicesToRemove.end(); ++it) {
-		this->clearBodyRecording(*it);
+		this->clearBodyShadow(*it);
 	}
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-	if (this->networkManager == NULL)
+	if (this->peerNetworkManager == NULL)
 		this->networkGui.draw();
 	else {
 		ofClear(0, 0, 0, 255);
@@ -472,7 +453,7 @@ void ofApp::drawTrackedBodies() {
 
 void ofApp::drawRemoteBodies() {
 	for (int bodyId = 0; bodyId < Constants::MAX_BODY_RECORDINGS + Constants::BODY_RECORDINGS_ID_OFFSET; bodyId++) {
-		if (!this->networkManager->isBodyActive(bodyId)) continue;
+		if (!this->peerNetworkManager->isBodyActive(bodyId)) continue;
 
 		TrackedBody* body = this->remoteBodies[bodyId];
 		if (body->getIsRecording()) {
@@ -486,9 +467,9 @@ void ofApp::drawRemoteBodies() {
 	}
 }
 
-void ofApp::drawTrackedBodyRecordings() {
-	for (auto it = this->activeBodyRecordings.begin(); it != this->activeBodyRecordings.end(); ++it) {
-		TrackedBodyRecording* rec = *it;
+void ofApp::drawBodyShadows() {
+	for (auto it = this->activeBodyShadows.begin(); it != this->activeBodyShadows.end(); ++it) {
+		TrackedBodyShadow* rec = *it;
 		if (this->getLocalBody() == this->getLeftBody()) {
 			rec->setGeneralColor(Colors::BLUE_SHADOW);
 		} else if (this->getLocalBody() == this->getRightBody()) {
@@ -502,10 +483,10 @@ void ofApp::updateSequencer() {
 	this->sequencerLeft->setTrackedBody(this->getLeftBody());
 	this->sequencerRight->setTrackedBody(this->getRightBody());
 
-	this->sequencerLeft->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
+	this->sequencerLeft->setCurrentHighlight(this->maxMSPNetworkManager->getSequencerStep() - 1);
 	this->sequencerLeft->update();
 
-	this->sequencerRight->setCurrentHighlight(this->oscSoundManager->getSequencerStep() - 1);
+	this->sequencerRight->setCurrentHighlight(this->maxMSPNetworkManager->getSequencerStep() - 1);
 	this->sequencerRight->update();
 }
 
@@ -514,63 +495,63 @@ void ofApp::drawSequencer() {
 	this->sequencerRight->draw();
 }
 
-void ofApp::updateIntersection() {
+void ofApp::updateBodiesIntersection() {
 	TrackedBody* body = this->getLocalBody();
 	TrackedBody* remoteMainBody = this->getRemoteBody();
 
 	if (body == NULL || remoteMainBody == NULL) {
-		remoteIntersectionActive = false;
-		this->intersectionPath->clear();
+		bodiesIntersectionActive = false;
+		this->bodiesIntersectionPath->clear();
 		return;
 	}
 
-	this->clipper.Clear();
+	this->bodiesIntersectionClipper.Clear();
 
 	body->contour.close();
 	remoteMainBody->contour.close();
 
-	this->clipper.addPolyline(body->contour, ClipperLib::ptSubject);
-	this->clipper.addPolyline(remoteMainBody->contour, ClipperLib::ptClip);
-	auto intersection = clipper.getClipped(ClipperLib::ClipType::ctIntersection);
+	this->bodiesIntersectionClipper.addPolyline(body->contour, ClipperLib::ptSubject);
+	this->bodiesIntersectionClipper.addPolyline(remoteMainBody->contour, ClipperLib::ptClip);
+	auto intersection = bodiesIntersectionClipper.getClipped(ClipperLib::ClipType::ctIntersection);
 
 	if (intersection.size() == 0) {
-		if (remoteIntersectionActive) this->oscSoundManager->sendBodyIntersection(0, 0, 0);
-		remoteIntersectionActive = false;
-		this->intersectionPath->clear();
+		if (bodiesIntersectionActive) this->maxMSPNetworkManager->sendBodyIntersection(0, 0, 0);
+		bodiesIntersectionActive = false;
+		this->bodiesIntersectionPath->clear();
 		return;
 	}
 
-	if (!remoteIntersectionActive) {
-		remoteIntersectionActive = true;
-		remoteIntersectionStartTimestamp = ofGetSystemTimeMillis();
+	if (!bodiesIntersectionActive) {
+		bodiesIntersectionActive = true;
+		bodiesIntersectionStartTimestamp = ofGetSystemTimeMillis();
 	}
 
-	this->intersectionPath->clear();
+	this->bodiesIntersectionPath->clear();
 	float totalArea = 0;
 	for (auto& line : intersection) {
-		this->intersectionPath->moveTo(line[0]);
+		this->bodiesIntersectionPath->moveTo(line[0]);
 		for (int i = 1; i < line.size(); i++) {
-			this->intersectionPath->lineTo(line[i]);
+			this->bodiesIntersectionPath->lineTo(line[i]);
 		}
-		this->intersectionPath->close();
+		this->bodiesIntersectionPath->close();
 		totalArea += line.getArea();
 	}
 
 	float localBodyArea = fabs(body->contour.getArea());
 	float remoteBodyArea = fabs(remoteMainBody->contour.getArea());
 	float normalizedArea = (totalArea / (fmin(localBodyArea, remoteBodyArea)));
-	float duration = (1.0 * ofGetSystemTimeMillis() - remoteIntersectionStartTimestamp) / 1000.0;
+	float duration = (1.0 * ofGetSystemTimeMillis() - bodiesIntersectionStartTimestamp) / 1000.0;
 
-	this->oscSoundManager->sendBodyIntersection(normalizedArea, intersection.size(), duration);
+	this->maxMSPNetworkManager->sendBodyIntersection(normalizedArea, intersection.size(), duration);
 }
 
-void ofApp::drawIntersection() {
-	this->intersectionPath->setFillColor(Colors::YELLOW);
-	this->intersectionPath->setFilled(true);
-	this->intersectionPath->draw();
+void ofApp::drawBodiesIntersection() {
+	this->bodiesIntersectionPath->setFillColor(Colors::YELLOW);
+	this->bodiesIntersectionPath->setFilled(true);
+	this->bodiesIntersectionPath->draw();
 }
 
-void ofApp::updateBackgrounds() {
+void ofApp::updateBackgroundContours() {
 	TrackedBody* leftBody = this->getLeftBody();
 	ofVec2f winSize = ofGetWindowSize() / 2.0;
 	ofVec2f padding = ofVec2f(25, 25);
@@ -579,10 +560,10 @@ void ofApp::updateBackgrounds() {
 		int framesOnPosition = 2;
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		this->leftCtr = leftBody->getContourSegment(pathStart, noPoints);
-		this->leftCtr.first->translate(glm::vec2(-this->leftCtr.second.x, -this->leftCtr.second.y));
-		this->leftCtr.first->scale((winSize.x / 2 - 2 * padding.x) / this->leftCtr.second.width, ((winSize.y - 2 * padding.y) / this->leftCtr.second.height));
-		this->leftCtr.first->translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
+		this->leftBackgroundContour = leftBody->getContourSegment(pathStart, noPoints);
+		this->leftBackgroundContour.first->translate(glm::vec2(-this->leftBackgroundContour.second.x, -this->leftBackgroundContour.second.y));
+		this->leftBackgroundContour.first->scale((winSize.x / 2 - 2 * padding.x) / this->leftBackgroundContour.second.width, ((winSize.y - 2 * padding.y) / this->leftBackgroundContour.second.height));
+		this->leftBackgroundContour.first->translate(glm::vec2(winSize.x / 2 + padding.x / 2.0 - 5, padding.y / 2.0 - 5));
 	}
 
 	TrackedBody* rightBody = this->getRightBody();
@@ -590,35 +571,35 @@ void ofApp::updateBackgrounds() {
 		int framesOnPosition = 2;
 		int pathStart = (ofGetFrameNum() % (framesOnPosition * 1000)) / framesOnPosition;
 		int noPoints = 50; //(sin(ofGetFrameNum() * 1.0 / 100.0) + 1) * 25;
-		this->rightCtr = rightBody->getContourSegment(pathStart, noPoints);
-		this->rightCtr.first->translate(glm::vec2(-this->rightCtr.second.x, -this->rightCtr.second.y));
-		this->rightCtr.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightCtr.second.width, ((winSize.y - 2 * padding.y) / this->rightCtr.second.height));
-		this->rightCtr.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
+		this->rightBackgroundContour = rightBody->getContourSegment(pathStart, noPoints);
+		this->rightBackgroundContour.first->translate(glm::vec2(-this->rightBackgroundContour.second.x, -this->rightBackgroundContour.second.y));
+		this->rightBackgroundContour.first->scale((winSize.x / 2 - 2 * padding.x) / this->rightBackgroundContour.second.width, ((winSize.y - 2 * padding.y) / this->rightBackgroundContour.second.height));
+		this->rightBackgroundContour.first->translate(glm::vec2(padding.x / 2.0 - 5, padding.y / 2.0 - 5));
 	}
 }
 
-void ofApp::drawBackgrounds()
+void ofApp::drawBackgroundContours()
 {
-	if (this->leftCtr.first != NULL) {		
-		this->leftCtr.first->setFilled(true);
-		this->leftCtr.first->setColor(Colors::BLUE_TRANSPARENT);
-		this->leftCtr.first->draw();
+	if (this->leftBackgroundContour.first != NULL) {		
+		this->leftBackgroundContour.first->setFilled(true);
+		this->leftBackgroundContour.first->setColor(Colors::BLUE_TRANSPARENT);
+		this->leftBackgroundContour.first->draw();
 
-		this->leftCtr.first->setFilled(false);
-		this->leftCtr.first->setStrokeColor(Colors::BLUE_TRANSPARENT);
-		this->leftCtr.first->setStrokeWidth(1.);
-		this->leftCtr.first->draw();
+		this->leftBackgroundContour.first->setFilled(false);
+		this->leftBackgroundContour.first->setStrokeColor(Colors::BLUE_TRANSPARENT);
+		this->leftBackgroundContour.first->setStrokeWidth(1.);
+		this->leftBackgroundContour.first->draw();
 	}
 
-	if (this->rightCtr.first != NULL) {
-		this->rightCtr.first->setFilled(true);
-		this->rightCtr.first->setColor(Colors::RED_TRANSPARENT);
-		this->rightCtr.first->draw();
+	if (this->rightBackgroundContour.first != NULL) {
+		this->rightBackgroundContour.first->setFilled(true);
+		this->rightBackgroundContour.first->setColor(Colors::RED_TRANSPARENT);
+		this->rightBackgroundContour.first->draw();
 
-		this->rightCtr.first->setFilled(false);
-		this->rightCtr.first->setStrokeColor(Colors::RED_TRANSPARENT);
-		this->rightCtr.first->setStrokeWidth(1.);
-		this->rightCtr.first->draw();
+		this->rightBackgroundContour.first->setFilled(false);
+		this->rightBackgroundContour.first->setStrokeColor(Colors::RED_TRANSPARENT);
+		this->rightBackgroundContour.first->setStrokeWidth(1.);
+		this->rightBackgroundContour.first->draw();
 	}
 }
 
@@ -626,7 +607,7 @@ void ofApp::drawSystemStatus() {
 	TrackedBody* leftBody = this->getLeftBody();
 	TrackedBody* rightBody = this->getRightBody();
 
-	bool isConnected = this->networkManager->isConnected();
+	bool isConnected = this->peerNetworkManager->isConnected();
 	float width, totalWidth;
 	ofPushStyle();
 	ofSetColor(Colors::YELLOW);
@@ -675,7 +656,7 @@ void ofApp::drawSystemStatus() {
 	}
 
 	// Latency
-	string latency = this->networkManager->getLatency();
+	string latency = this->peerNetworkManager->getLatency();
 	width = fontBold.stringWidth("Latency_ ");
 	totalWidth = width + fontRegular.stringWidth(latency);
 	fontBold.drawString("Latency_ ", (ofGetWindowWidth() - totalWidth) / 2, ofGetWindowHeight() - Layout::WINDOW_PADDING + 15);
@@ -791,7 +772,7 @@ void ofApp::drawFrequencyGradient() {
 	TrackedBody* leftBody = this->getLeftBody();
 	if (leftBody != NULL) {
 		vector<float> freqs = leftBody->getCurrentlyPlaying16Frequencies();
-		int index = this->oscSoundManager->getSequencerStep() - 1;
+		int index = this->maxMSPNetworkManager->getSequencerStep() - 1;
 		if (freqs.size() > index) {
 			float frequency = freqs[index];
 			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
@@ -809,7 +790,7 @@ void ofApp::drawFrequencyGradient() {
 	TrackedBody* rightBody = this->getRightBody();
 	if (rightBody != NULL) {
 		vector<float> freqs = rightBody->getCurrentlyPlaying16Frequencies();
-		int index = this->oscSoundManager->getSequencerStep() - 1;
+		int index = this->maxMSPNetworkManager->getSequencerStep() - 1;
 		if (freqs.size() > index) {
 			float frequency = freqs[index];
 			int indicatorX = leftX + ofMap(frequency, 0, maxFreq, 0, width);
@@ -824,7 +805,7 @@ void ofApp::drawFrequencyGradient() {
 	}
 }
 
-void ofApp::drawFrame() {
+void ofApp::drawRectangularFrame() {
 	ofVec2f winSize = ofGetWindowSize();
 	ofPushStyle();
 	ofSetColor(Colors::BACKGROUND);
@@ -855,24 +836,24 @@ void ofApp::drawInterface() {
 	ofTranslate(Layout::WINDOW_PADDING, Layout::WINDOW_PADDING);
 	ofScale(Layout::WINDOW_SCALE);
 
-	this->drawBackgrounds();
+	this->drawBackgroundContours();
 
 	TrackedBody* leftBody = this->getLeftBody();
 	if (leftBody != NULL) leftBody->setGeneralColor(Colors::BLUE);
 	TrackedBody* rightBody = this->getRightBody();
 	if (rightBody != NULL) rightBody->setGeneralColor(Colors::RED);
 
-	this->drawTrackedBodyRecordings();
+	this->drawBodyShadows();
 	this->drawTrackedBodies();
 	this->drawRemoteBodies();
-	this->drawIntersection();
+	this->drawBodiesIntersection();
 	this->drawSequencer();	
 	this->drawBodyTrackedStatus();
 	this->drawFrequencyGradient();
 
 	ofPopMatrix();
 
-	this->drawFrame();
+	this->drawRectangularFrame();
 	this->drawSystemStatus();
 }
 
@@ -883,65 +864,15 @@ void ofApp::keyPressed(int key) {
 		this->guiVisible = !this->guiVisible;
 		break;
 	case 'a':
-		this->spawnBodyRecording();
+		this->spawnBodyShadow();
 		break;
 	case 's':
-		for (int index = 0; index < this->activeBodyRecordings.size(); index++) {
-			this->playBodyRecording(index);
+		for (int index = 0; index < this->activeBodyShadows.size(); index++) {
+			this->playBodyShadow(index);
 		}
 		break;
 	case 'd':
-		this->clearBodyRecording(0);
+		this->clearBodyShadow(0);
 		break;
 	}
-}
-
-//--------------------------------------------------------------
-void ofApp::keyReleased(int key) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseEntered(int x, int y) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::mouseExited(int x, int y) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::windowResized(int w, int h) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg) {
-
-}
-
-//--------------------------------------------------------------
-void ofApp::dragEvent(ofDragInfo dragInfo) {
-
 }

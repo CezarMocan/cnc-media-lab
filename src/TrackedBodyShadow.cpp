@@ -1,26 +1,26 @@
-#include "TrackedBodyRecording.h"
+#include "TrackedBodyShadow.h"
 
-int TrackedBodyRecording::getTrackedBodyIndex()
+int TrackedBodyShadow::getTrackedBodyIndex()
 {
 	return this->trackedBodyIndex;
 }
 
-void TrackedBodyRecording::setTrackedBodyIndex(int index)
+void TrackedBodyShadow::setTrackedBodyIndex(int index)
 {
 	this->trackedBodyIndex = index;
 }
 
-bool TrackedBodyRecording::getIsRecording()
+bool TrackedBodyShadow::getIsRecording()
 {
 	return this->isRecording;
 }
 
-bool TrackedBodyRecording::getIsPlaying()
+bool TrackedBodyShadow::getIsPlaying()
 {
 	return this->isPlaying;
 }
 
-void TrackedBodyRecording::startRecording()
+void TrackedBodyShadow::startRecording()
 {
 	this->isRecording = true;
 	this->isPlaying = false;
@@ -31,29 +31,29 @@ void TrackedBodyRecording::startRecording()
 	this->recordedTextures.clear();
 }
 
-void TrackedBodyRecording::stopRecording()
+void TrackedBodyShadow::stopRecording()
 {
 	this->isRecording = false;
 }
 
-void TrackedBodyRecording::startPlayOnce()
+void TrackedBodyShadow::startPlayOnce()
 {
 	this->startPlayLoop();
 }
 
-void TrackedBodyRecording::startPlayLoop()
+void TrackedBodyShadow::startPlayLoop()
 {
 	this->isRecording = false;
 	this->isPlaying = true;
 	this->playhead = 0;
 }
 
-void TrackedBodyRecording::stopPlay()
+void TrackedBodyShadow::stopPlay()
 {
 	this->isPlaying = false;
 }
 
-void TrackedBodyRecording::update()
+void TrackedBodyShadow::update()
 {
 	if (isRecording) {
 		TrackedBody::update();
@@ -94,7 +94,7 @@ void TrackedBodyRecording::update()
 	}
 }
 
-void TrackedBodyRecording::draw()
+void TrackedBodyShadow::draw()
 {
 	if (this->isPlaying) {
 		if (this->recordedContours.size() == 0) return;
@@ -102,17 +102,17 @@ void TrackedBodyRecording::draw()
 	}
 }
 
-void TrackedBodyRecording::updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper)
+void TrackedBodyShadow::updateSkeletonData(map<JointType, ofxKinectForWindows2::Data::Joint> joints, ICoordinateMapper* coordinateMapper)
 {
 	if (this->isRecording) TrackedBody::updateSkeletonData(joints, coordinateMapper);
 }
 
-void TrackedBodyRecording::updateContourData(vector<ofPolyline> contours)
+void TrackedBodyShadow::updateContourData(vector<ofPolyline> contours)
 {
 	if (this->isRecording) TrackedBody::updateContourData(contours);
 }
 
-void TrackedBodyRecording::sendOSCData()
+void TrackedBodyShadow::sendDataToMaxMSP()
 {
-	if (this->isPlaying) TrackedBody::sendOSCData();
+	if (this->isPlaying) TrackedBody::sendDataToMaxMSP();
 }

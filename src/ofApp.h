@@ -8,7 +8,7 @@
 #include "ofxGui.h"
 #include "Constants.h"
 #include "TrackedBody.h"
-#include "TrackedBodyRecording.h"
+#include "TrackedBodyShadow.h"
 #include "BodySoundPlayer.h"
 #include "ofxClipper.h"
 #include "Sequencer.h"
@@ -16,117 +16,108 @@
 class ofApp : public ofBaseApp {
 
 public:
+	// oF lifecycle
 	void setup();
 	void update();
 	void draw();
-
-	void updateSequencer();
-	void drawSequencer();
-
-	ofPath* intersectionPath;
-	void updateIntersection();
-	void drawIntersection();
-
-	pair<ofPath*, ofRectangle> leftCtr;
-	pair<ofPath*, ofRectangle> rightCtr;
-	void updateBackgrounds();
-	void drawBackgrounds();
-	
-	void drawTrackedBodies();
-	void drawRemoteBodies();
-	void drawTrackedBodyRecordings();
-
-	void drawSystemStatus();
-	void drawBodyTrackedStatus();
-	void drawFrequencyGradient();
-	void drawFrame();
-
 	void drawInterface();
-
-	void resolveInstrumentConflicts();
-
-	void detectBodySkeletons();
-	void detectBodyContours();
-
-
-	TrackedBody* getLocalBody();
-	TrackedBody* getRemoteBody();
-	TrackedBody* getLeftBody();
-	TrackedBody* getRightBody();
-	int getLocalBodyIndex();
-	int getRemoteBodyIndex();
-	int getLeftBodyIndex();
-	int getRightBodyIndex();
-
 	void keyPressed(int key);
-	void keyReleased(int key);
-	void mouseMoved(int x, int y);
-	void mouseDragged(int x, int y, int button);
-	void mousePressed(int x, int y, int button);
-	void mouseReleased(int x, int y, int button);
-	void mouseEntered(int x, int y);
-	void mouseExited(int x, int y);
-	void windowResized(int w, int h);
-	void dragEvent(ofDragInfo dragInfo);
-	void gotMessage(ofMessage msg);
 
+	// Networking
+	MaxMSPNetworkManager* maxMSPNetworkManager;
+	PeerNetworkManager* peerNetworkManager;
+
+	void peerConnectButtonPressed();
+
+	// Kinect and bodies management
+
+	// // Kinect, detecting body contours
 	ofxKFW2::Device kinect;
 	ICoordinateMapper* coordinateMapper;
+	ofxCv::ContourFinder contourFinder;
 
-	MaxMSPNetworkManager* oscSoundManager;
 	map<int, TrackedBody*> trackedBodies;
 	map<int, TrackedBody*> remoteBodies;
 	vector<int> trackedBodyIds;
 
-	ofShader bodyIndexShader;
+	TrackedBody* getLocalBody();
+	int getLocalBodyIndex();
+
+	TrackedBody* getRemoteBody();
+	int getRemoteBodyIndex();
+
+	TrackedBody* getLeftBody();
+	int getLeftBodyIndex();
+
+	TrackedBody* getRightBody();
+	int getRightBodyIndex();
+
+	void detectBodies();
+	void computeBodyContours();
+	void resolveInstrumentConflicts();
+
+	void drawTrackedBodies();
+	void drawRemoteBodies();
+
+	//// Body intersections between local and remote
+	ofx::Clipper bodiesIntersectionClipper;
+	bool bodiesIntersectionActive;
+	float bodiesIntersectionStartTimestamp;
+	ofPath* bodiesIntersectionPath;
+
+	void updateBodiesIntersection();
+	void drawBodiesIntersection();
+
+	//// Body shadows management
+	vector<TrackedBodyShadow*> activeBodyShadows;
+	vector<pair<int, pair<float, float> > > activeBodyShadowsParams;
+
+	void spawnBodyShadow();
+	void playBodyShadow(int index);
+	void clearBodyShadow(int index);
+	void updateBodyShadows();
+	void drawBodyShadows();
+
+	// Visuals, GUI
+
+	//// Final shader pass, for applying grain on top of everything
 	ofShader grainShader;
 	ofFbo grainFbo;
-
-	ofFbo bodyFbo;
-	ofFbo bodyDebugFbo;
-	ofPixels bodyPixels;
-	ofImage bodyImage;
-
 	ofMesh frequencyGradient;
 
-	ofxCv::ContourFinder contourFinder;
-
-	float headX = 0, headY = 0;
-	int currView = 0;
-
-
+	//// Simple GUI for setting global parameters
 	bool guiVisible;
 	ofxPanel gui;
-	ofParameter<int> radius;
 	ofParameter<int> polygonFidelity;
-	
 	ofParameter<bool> isLeft;
-
 	ofParameter<bool> automaticShadows;
 
-	ofxPanel networkGui;	
+	//// Networking GUI, for connecting with peer
+	ofxPanel networkGui;
 	ofParameter<string> peerIp;
 	ofParameter<string> peerPort;
 	ofParameter<string> localPort;
 	ofxButton peerConnectButton;
-	void peerConnectButtonPressed();
-	PeerNetworkManager* networkManager;
 
-	ofx::Clipper clipper;
-
-	bool remoteIntersectionActive;
-	float remoteIntersectionStartTimestamp;
+	//// Sequencer GUI (squares at the top of the interface)
 	Sequencer* sequencerLeft;
 	Sequencer* sequencerRight;
+	void updateSequencer();
+	void drawSequencer();
 
-	void spawnBodyRecording();
-	void playBodyRecording(int index);
-	void clearBodyRecording(int index);
-	void manageBodyShadows();
+	//// Body contour tracing backgrounds
+	pair<ofPath*, ofRectangle> leftBackgroundContour;
+	pair<ofPath*, ofRectangle> rightBackgroundContour;
+	void updateBackgroundContours();
+	void drawBackgroundContours();
 
-	vector<TrackedBodyRecording*> activeBodyRecordings;
-	vector<pair<int, pair<float, float> > > activeBodyRecordingsParams;
+	//// Remaining GUI elements
+	void drawSystemStatus();
+	void drawBodyTrackedStatus();
+	void drawFrequencyGradient();
+	void drawRectangularFrame();
 
+	//// Fonts
 	ofTrueTypeFont fontRegular;
 	ofTrueTypeFont fontBold;
 };

@@ -45,7 +45,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 
 void TrackedBody::setOSCManager(MaxMSPNetworkManager* m)
 {
-	this->oscManager = m;
+	this->maxMSPNetworkManager = m;
 	this->bodySoundPlayer->setOscManager(m);
 }
 
@@ -67,7 +67,7 @@ void TrackedBody::setIsTracked(bool isTracked)
 	this->isTracked = isTracked;
 }
 
-void TrackedBody::setContourPoints(int contourPoints)
+void TrackedBody::setNumberOfContourPoints(int contourPoints)
 {
 	if (contourPoints != this->contourPoints) {
 		this->contourPoints = contourPoints;
@@ -573,7 +573,7 @@ void TrackedBody::updateSkeletonContourDataFromSerialized(string s)
 	this->assignInstrument(instrumentId);
 }
 
-void TrackedBody::sendOSCData()
+void TrackedBody::sendDataToMaxMSP()
 {	
 	float value;
 	float normalizedValue;	
@@ -582,41 +582,41 @@ void TrackedBody::sendOSCData()
 
 	if (ofGetFrameNum() % 3 != 0) return;
 	// Send whether is recording
-	this->oscManager->sendIsRecording(this->instrumentId, this->getIsRecording());
+	this->maxMSPNetworkManager->sendIsRecording(this->instrumentId, this->getIsRecording());
 
 	// Distances
 	value = this->getNormalizedJointsDistance(JointType_WristLeft, JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-hand-l-knee", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "l-hand-l-knee", normalizedValue);
 
 	value = this->getNormalizedJointsDistance(JointType_KneeRight, JointType_WristRight);
 	normalizedValue = ofMap(value, 0, 1, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "r-hand-r-knee", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::DISTANCE, "r-hand-r-knee", normalizedValue);
 
 	// Movements	
 	value = this->getJointNormalizedSpeed(JointType_WristLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-hand", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-hand", normalizedValue);
 
 	value = this->getJointNormalizedSpeed(JointType_WristRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-hand", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-hand", normalizedValue);
 
 	value = this->getJointNormalizedSpeed(JointType_AnkleLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-foot", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-foot", normalizedValue);
 
 	value = this->getJointNormalizedSpeed(JointType_AnkleRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-foot", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-foot", normalizedValue);
 
 	value = this->getJointNormalizedSpeed(JointType_KneeLeft);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-knee", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "l-knee", normalizedValue);
 
 	value = this->getJointNormalizedSpeed(JointType_KneeRight);
 	normalizedValue = ofMap(value, 0, 60, 0, 1023);
-	this->oscManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-knee", normalizedValue);
+	this->maxMSPNetworkManager->sendBodyMessage(this->instrumentId, OscCategories::MOVEMENT, "r-knee", normalizedValue);
 }
 
 bool TrackedBody::interestPointComparator(pair<JointType, ofVec2f> a, pair<JointType, ofVec2f> b)
