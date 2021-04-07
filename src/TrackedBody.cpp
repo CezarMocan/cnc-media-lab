@@ -27,7 +27,7 @@ TrackedBody::TrackedBody(int index, float smoothingFactor, int contourPoints, in
 	this->isRemote = isRemote;
 	this->isTracked = false;
 
-	this->setBodySoundPlayer(new BodySoundPlayer(index, DEPTH_WIDTH, DEPTH_HEIGHT, Scales::PENTATONIC));
+	this->setBodySoundPlayer(new BodySoundManager(index, DEPTH_WIDTH, DEPTH_HEIGHT, Scales::PENTATONIC));
 
 	this->JOINT_WEIGHTS = {
 		{JointType_WristLeft, 1.0}, {JointType_WristRight, 1.0},
@@ -51,7 +51,7 @@ void TrackedBody::setOSCManager(MaxMSPNetworkManager* m)
 	this->bodySoundPlayer->setOscManager(m);
 }
 
-void TrackedBody::setBodySoundPlayer(BodySoundPlayer* bsp)
+void TrackedBody::setBodySoundPlayer(BodySoundManager* bsp)
 {
 	this->bodySoundPlayer = bsp;
 	this->bodySoundPlayer->start();
@@ -284,6 +284,7 @@ void TrackedBody::update()
 	this->bodySoundPlayer->update();
 }
 
+// Compute the joints which end up defining the sequencer, based on body metrics.
 vector<pair<JointType, ofVec2f> > TrackedBody::getInterestPoints()
 {
 	vector<pair<JointType, ofVec2f> > interestPoints;
@@ -402,12 +403,12 @@ void TrackedBody::drawWithShader(ofShader* shader) {
 	if (!this->isTracked) return;
 	if (this->contour.size() < 3) return;
 
-	MainFboManager::end();
+	// MainFboManager::end();
 	this->polyFbo.begin();
 	ofClear(0, 0, 0, 255);
 	this->drawContourForRaster(ofColor(255, 128, 128));
 	this->polyFbo.end();
-	MainFboManager::begin();
+	// MainFboManager::begin();
 
 	float time = ofGetSystemTimeMillis();
 	glm::vec4 color = glm::vec4(this->generalColor.r, this->generalColor.g, this->generalColor.b, this->generalColor.a) / 255.0;

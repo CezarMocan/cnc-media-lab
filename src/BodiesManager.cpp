@@ -188,7 +188,7 @@ void BodiesManager::updateBodyShadows()
 
 	// Spawn new shadow at random interval
 	int spawnRand = (int)ofRandom(0, Constants::SHADOW_EXPECTED_FREQUENCY_SEC * ofGetFrameRate());
-	if (spawnRand == 2 && this->activeBodyShadows.size() < 2) {
+	if (spawnRand == 0 && this->activeBodyShadows.size() < 2) {
 		bool isRecording = false;
 		if (this->activeBodyShadows.size() == 1 && this->activeBodyShadows[0]->getIsRecording())
 			isRecording = true;

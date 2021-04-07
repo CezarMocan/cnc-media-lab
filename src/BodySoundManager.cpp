@@ -1,6 +1,6 @@
-#include "BodySoundPlayer.h"
+#include "BodySoundManager.h"
 
-BodySoundPlayer::BodySoundPlayer(int index, int canvasWidth, int canvasHeight, vector<MidiNote*> scale)
+BodySoundManager::BodySoundManager(int index, int canvasWidth, int canvasHeight, vector<MidiNote*> scale)
 {
 	this->index = index;
 	this->canvasWidth = canvasWidth;
@@ -15,23 +15,23 @@ BodySoundPlayer::BodySoundPlayer(int index, int canvasWidth, int canvasHeight, v
 	this->currentlyPlaying16Frequencies.clear();
 }
 
-void BodySoundPlayer::setOscManager(MaxMSPNetworkManager* oscManager)
+void BodySoundManager::setOscManager(MaxMSPNetworkManager* oscManager)
 {
 	this->oscManager = oscManager;
 }
 
-void BodySoundPlayer::setInterestPoints(vector<pair<JointType, ofVec2f> > points)
+void BodySoundManager::setInterestPoints(vector<pair<JointType, ofVec2f> > points)
 {
 	this->interestPoints = points;
 }
 
-void BodySoundPlayer::update()
+void BodySoundManager::update()
 {
 	if (!this->playing) return;
 	if (this->interestPoints.size() == 0) return;
 }
 
-void BodySoundPlayer::sendOSC(int instrumentId) {
+void BodySoundManager::sendOSC(int instrumentId) {
 	int sequencerStep = this->oscManager->getSequencerStep();
 	// Only send joint data to Max on the last frame of the sequencer
 	if ((sequencerStep == 0 || sequencerStep == 16) && sequencerStep != this->previousSequencerStep) {
@@ -40,22 +40,22 @@ void BodySoundPlayer::sendOSC(int instrumentId) {
 	this->previousSequencerStep = sequencerStep;
 }
 
-vector<JointType> BodySoundPlayer::getCurrentlyPlayingJoints()
+vector<JointType> BodySoundManager::getCurrentlyPlayingJoints()
 {
 	return this->currentlyPlayingJoints;
 }
 
-vector<JointType> BodySoundPlayer::getCurrentlyPlaying16Joints()
+vector<JointType> BodySoundManager::getCurrentlyPlaying16Joints()
 {
 	return this->currentlyPlaying16Joints;
 }
 
-vector<float> BodySoundPlayer::getCurrentlyPlaying16Frequencies()
+vector<float> BodySoundManager::getCurrentlyPlaying16Frequencies()
 {
 	return this->currentlyPlaying16Frequencies;
 }
 
-void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
+void BodySoundManager::sendMidiSequenceOsc(int instrumentId)
 {
 	if (this->interestPoints.size() == 0) return;
 
@@ -112,7 +112,7 @@ void BodySoundPlayer::sendMidiSequenceOsc(int instrumentId)
 }
 
 
-void BodySoundPlayer::draw()
+void BodySoundManager::draw()
 {
 	if (!this->playing) return;
 	if (this->interestPoints.size() == 0) return;
@@ -127,12 +127,12 @@ void BodySoundPlayer::draw()
 	ofPopMatrix();
 }
 
-void BodySoundPlayer::start()
+void BodySoundManager::start()
 {
 	this->playing = true;
 }
 
-void BodySoundPlayer::stop()
+void BodySoundManager::stop()
 {
 	this->playing = false;
 	this->currentNoteIndex = -1;
@@ -140,7 +140,7 @@ void BodySoundPlayer::stop()
 }
 
 
-float BodySoundPlayer::getDurationForIndex(int index) {
+float BodySoundManager::getDurationForIndex(int index) {
 	vector<int> durations;
 	if (ofRandom(2) < 0.3)
 		durations = { 700, 1000, 700, 700, 1000 };
@@ -149,7 +149,7 @@ float BodySoundPlayer::getDurationForIndex(int index) {
 	return durations[index % durations.size()] * 1.;
 }
 
-MidiNote* BodySoundPlayer::pointToMidi(ofVec2f point)
+MidiNote* BodySoundManager::pointToMidi(ofVec2f point)
 {
 	const int width = this->canvasWidth;
 	const int height = this->canvasHeight;

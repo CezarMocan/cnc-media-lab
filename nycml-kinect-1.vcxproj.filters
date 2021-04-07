@@ -193,12 +193,6 @@
     <ClCompile Include="src\MaxMSPNetworkManager.cpp">
       <Filter>src\Network</Filter>
     </ClCompile>
-    <ClCompile Include="src\BodyUtils.cpp">
-      <Filter>src\Bodies</Filter>
-    </ClCompile>
-    <ClCompile Include="src\BodySoundPlayer.cpp">
-      <Filter>src\Bodies</Filter>
-    </ClCompile>
     <ClCompile Include="src\TrackedBody.cpp">
       <Filter>src\Bodies</Filter>
     </ClCompile>
@@ -211,8 +205,17 @@
     <ClCompile Include="src\TrackedBodyShadow.cpp">
       <Filter>src\Bodies</Filter>
     </ClCompile>
-    <ClCompile Include="GUIManager.cpp">
+    <ClCompile Include="src\GUIManager.cpp">
       <Filter>src\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BodiesManager.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BodySoundManager.cpp">
+      <Filter>src\Bodies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GeometryUtils.cpp">
+      <Filter>src\Bodies</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1589,12 +1592,6 @@
     <ClInclude Include="src\MaxMSPNetworkManager.h">
       <Filter>src\Network</Filter>
     </ClInclude>
-    <ClInclude Include="src\BodyUtils.h">
-      <Filter>src\Bodies</Filter>
-    </ClInclude>
-    <ClInclude Include="src\BodySoundPlayer.h">
-      <Filter>src\Bodies</Filter>
-    </ClInclude>
     <ClInclude Include="src\TrackedBody.h">
       <Filter>src\Bodies</Filter>
     </ClInclude>
@@ -1607,8 +1604,17 @@
     <ClInclude Include="src\TrackedBodyShadow.h">
       <Filter>src\Bodies</Filter>
     </ClInclude>
-    <ClInclude Include="GUIManager.h">
+    <ClInclude Include="src\GUIManager.h">
       <Filter>src\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BodiesManager.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BodySoundManager.h">
+      <Filter>src\Bodies</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GeometryUtils.h">
+      <Filter>src\Bodies</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,8 +7,7 @@
 #include "Constants.h"
 #include "MaxMSPNetworkManager.h"
 #include "ofxVoronoi.h"
-#include "BodySoundPlayer.h"
-#include "MainFboManager.h"
+#include "BodySoundManager.h"
 
 #ifndef TRACKED_BODY_H
 #define TRACKED_BODY_H
@@ -36,7 +35,7 @@ public:
 	TrackedBody(int index, float smoothingFactor, int contourPoints = 150, int noDelayedContours = 20, bool isRemote = false);
 
 	void setOSCManager(MaxMSPNetworkManager* m);
-	void setBodySoundPlayer(BodySoundPlayer* bsp);
+	void setBodySoundPlayer(BodySoundManager* bsp);
 
 	void setIsTracked(bool isTracked);
 	void setNumberOfContourPoints(int contourPoints);
@@ -112,7 +111,7 @@ protected:
 	ofColor generalColor;
 	MaxMSPNetworkManager* maxMSPNetworkManager;
 
-	BodySoundPlayer* bodySoundPlayer;
+	BodySoundManager* bodySoundPlayer;
 
 	map<JointType, TrackedJoint*> joints;
 		

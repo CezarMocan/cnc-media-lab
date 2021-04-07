@@ -9,7 +9,7 @@
 #include "Constants.h"
 #include "TrackedBody.h"
 #include "TrackedBodyShadow.h"
-#include "BodySoundPlayer.h"
+#include "BodySoundManager.h"
 #include "ofxClipper.h"
 #include "GUIManager.h"
 #include "BodiesManager.h"
@@ -32,58 +32,6 @@ public:
 
 	// Kinect and bodies management
 	BodiesManager* bodiesManager;
-
-	// // Kinect, detecting body contours
-	/*
-	ofxKFW2::Device kinect;
-	ICoordinateMapper* coordinateMapper;
-	ofxCv::ContourFinder contourFinder;
-
-	map<int, TrackedBody*> trackedBodies;
-	map<int, TrackedBody*> remoteBodies;
-	vector<int> trackedBodyIds;
-
-	TrackedBody* getLocalBody();
-	int getLocalBodyIndex();
-
-	TrackedBody* getRemoteBody();
-	int getRemoteBodyIndex();
-
-	TrackedBody* getLeftBody();
-	int getLeftBodyIndex();
-
-	TrackedBody* getRightBody();
-	int getRightBodyIndex();
-
-	void detectBodies();
-	void computeBodyContours();
-	void resolveInstrumentConflicts();
-
-	void updateTrackedBodies();
-	void drawTrackedBodies();
-
-	void updateRemoteBodies();
-	void drawRemoteBodies();
-
-	//// Body intersections between local and remote
-	ofx::Clipper bodiesIntersectionClipper;
-	bool bodiesIntersectionActive;
-	float bodiesIntersectionStartTimestamp;
-	ofPath* bodiesIntersectionPath;
-
-	void updateBodiesIntersection();
-	void drawBodiesIntersection();
-
-	//// Body shadows management
-	vector<TrackedBodyShadow*> activeBodyShadows;
-	vector<pair<int, pair<float, float> > > activeBodyShadowsParams;
-
-	void spawnBodyShadow();
-	void playBodyShadow(int index);
-	void clearBodyShadow(int index);
-	void updateBodyShadows();
-	void drawBodyShadows();
-	*/
 
 	// Visuals, GUI
 

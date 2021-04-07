@@ -5,9 +5,9 @@
 #include "MaxMSPNetworkManager.h"
 #include <algorithm>
 
-class BodySoundPlayer {
+class BodySoundManager {
 public:
-	BodySoundPlayer(int index, int canvasWidth, int canvasHeight, vector<MidiNote*> scale);
+	BodySoundManager(int index, int canvasWidth, int canvasHeight, vector<MidiNote*> scale);
 	void setOscManager(MaxMSPNetworkManager* oscManager);
 	void setInterestPoints(vector<pair<JointType, ofVec2f> > points);
 	void update();
